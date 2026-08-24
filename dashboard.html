@@ -612,10 +612,7 @@ function updateAnalysis(){
     document.getElementById('hdrRange').textContent=(f===t2?f:f+' – '+t2)+' · '+n+'일';
   }
   // peak legend
-  const isSales2=aLineMode==='sales';
-  const vis=aData.filter(d=>PEAKS[d[0]]).sort((a,b)=>isSales2?b[1]-a[1]:b[2]-a[2]);
-  document.getElementById('aPeakLeg').innerHTML=vis.map((d,i)=>
-    `<span class="pbadge${i===0?' top':''}">${d[0]} ${isSales2?fmtS(d[1]):d[2].toLocaleString()+'건'}</span>`).join('');
+  updatePeakLeg();
   // bar sub
   const lbl=aData.length?aData[0][0]+(aData.length>1?' – '+aData[aData.length-1][0]:''):'';
   document.getElementById('aSalesSub').textContent=lbl+' 순매출 상위 10개';
@@ -630,9 +627,16 @@ function setLineTab(mode){
   aLineMode=mode;
   document.getElementById('ltab-sales').classList.toggle('active', mode==='sales');
   document.getElementById('ltab-orders').classList.toggle('active', mode==='orders');
-  const sub=document.getElementById('aLineSub');
-  sub.textContent=mode==='sales'?'일별 순매출':'일별 결제수';
+  document.getElementById('aLineSub').textContent=mode==='sales'?'일별 순매출':'일별 결제수';
+  updatePeakLeg();
   drawAnalysis();
+}
+
+function updatePeakLeg(){
+  const isSales=aLineMode==='sales';
+  const vis=aData.filter(d=>PEAKS[d[0]]).sort((a,b)=>isSales?b[1]-a[1]:b[2]-a[2]);
+  document.getElementById('aPeakLeg').innerHTML=vis.map((d,i)=>
+    `<span class="pbadge${i===0?' top':''}">${d[0]} ${isSales?fmtS(d[1]):d[2].toLocaleString()+'건'}</span>`).join('');
 }
 
 function drawAnalysis(){
