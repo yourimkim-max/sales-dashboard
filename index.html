@@ -136,6 +136,10 @@
   .kpi-value{font-size:22px;font-weight:800;letter-spacing:-.8px;font-variant-numeric:tabular-nums}
   .kpi-sub{font-size:11px;color:var(--text-3);margin-top:2px}
   .kpi-value.c-acc{color:var(--accent)} .kpi-value.c-good{color:var(--good)} .kpi-value.c-warn{color:var(--warn)}
+  .kpi-value.c-vis{color:#7C3AED}
+  @media(prefers-color-scheme:dark){.kpi-value.c-vis{color:#A78BFA}}
+  :root[data-theme="dark"] .kpi-value.c-vis{color:#A78BFA}
+  :root[data-theme="light"] .kpi-value.c-vis{color:#7C3AED}
 
   /* Compare KPI */
   .ckpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
@@ -271,7 +275,7 @@
         <div class="kpi-value" id="a-ko">37,358건</div>
         <div class="kpi-sub" id="a-ko2">일 평균 691건</div></div>
       <div class="kpi"><div class="kpi-label">방문수</div>
-        <div class="kpi-value" id="a-kv">891,547</div>
+        <div class="kpi-value c-vis" id="a-kv">891,547</div>
         <div class="kpi-sub" id="a-kv2">일 평균 16,510명</div></div>
       <div class="kpi"><div class="kpi-label">구매 전환율</div>
         <div class="kpi-value c-good" id="a-kc">4.2%</div>
