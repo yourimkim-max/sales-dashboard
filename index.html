@@ -142,8 +142,9 @@
   :root[data-theme="light"] .kpi-value.c-vis{color:#7C3AED}
 
   /* Compare KPI */
-  .ckpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
-  @media(max-width:700px){.ckpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .ckpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:900px){.ckpi-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:600px){.ckpi-grid{grid-template-columns:repeat(2,1fr)}}
   .ckpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
   .ckpi-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.4px;margin-bottom:8px}
   .ckpi-row{display:flex;align-items:baseline;gap:6px;margin-bottom:5px}
@@ -354,9 +355,33 @@
       <!-- rendered by JS -->
     </div>
 
+    <!-- Compare category chart -->
+    <div class="chart-card">
+      <h2>카테고리별 매출 비중</h2>
+      <div class="sub">상품 관리 탭에서 지정한 카테고리 기준 · 기간 1 기준</div>
+      <div class="cat-donut-grid">
+        <div class="cat-donut-col">
+          <div class="cat-sub-title">대카테고리</div>
+          <canvas id="cMajDonut"></canvas>
+          <div class="donut-legend" id="cMajLegend"></div>
+        </div>
+        <div class="cat-donut-col">
+          <div class="cat-sub-title">세부카테고리</div>
+          <canvas id="cMinDonut"></canvas>
+          <div class="donut-legend" id="cMinLegend"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Compare line chart -->
     <div class="chart-card">
-      <h2>순매출 추이 비교</h2>
+      <div class="line-tab-bar">
+        <h2 style="margin:0">추이 비교</h2>
+        <div class="line-tabs">
+          <button class="ltab active" id="cltab-sales"  onclick="setCLineTab('sales')">순매출</button>
+          <button class="ltab"        id="cltab-orders" onclick="setCLineTab('orders')">결제수</button>
+        </div>
+      </div>
       <div class="sub" id="cLineSub">두 기간의 일별 순매출 비교 (1일차 기준 정렬)</div>
       <div class="chart-legend">
         <div class="legend-item">
@@ -718,8 +743,8 @@ function drawDonut(canvasId, legendId, segments){
   }).join('');
 }
 
-function buildCatSegs(){
-  const period=pick10(aData);
+function buildCatSegs(period){
+  if(period===undefined) period=pick10(aData);
   const salesMap=PROD_SALES[period]||PROD_SALES['all']||{};
   const majAgg={}, minAgg={};
   for(const [code,sales] of Object.entries(salesMap)){
@@ -748,6 +773,24 @@ function drawCatCharts(){
   const {majSegs,minSegs}=buildCatSegs();
   drawDonut('majDonut','majLegend',majSegs);
   drawDonut('minDonut','minLegend',minSegs);
+}
+
+function drawCmpCatCharts(){
+  if(!cData1||!cData1.length) return;
+  const period=pick10(cData1);
+  const {majSegs,minSegs}=buildCatSegs(period);
+  drawDonut('cMajDonut','cMajLegend',majSegs);
+  drawDonut('cMinDonut','cMinLegend',minSegs);
+}
+
+let cLineMode='sales';
+function setCLineTab(mode){
+  cLineMode=mode;
+  document.getElementById('cltab-sales').classList.toggle('active', mode==='sales');
+  document.getElementById('cltab-orders').classList.toggle('active', mode==='orders');
+  document.getElementById('cLineSub').textContent=
+    mode==='sales'?'두 기간의 일별 순매출 비교 (1일차 기준 정렬)':'두 기간의 일별 결제수 비교 (1일차 기준 정렬)';
+  drawCompare();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -793,7 +836,8 @@ function updateCompare(){
   const cards=[
     {label:'총 순매출', v1:fmtS(s1.S), v2:fmtS(s2.S), delta:deltaTag(s1.S,s2.S,false), sub1:s1.S.toLocaleString()+'원', sub2:s2.S.toLocaleString()+'원'},
     {label:'총 주문건수', v1:s1.O.toLocaleString()+'건', v2:s2.O.toLocaleString()+'건', delta:deltaTag(s1.O,s2.O,false), sub1:'일 평균 '+Math.round(s1.O/s1.n).toLocaleString()+'건', sub2:'일 평균 '+Math.round(s2.O/s2.n).toLocaleString()+'건'},
-    {label:'구매 전환율', v1:cv1+'%', v2:cv2+'%', delta:deltaTag(+cv1,+cv2,false), sub1:'방문 '+s1.V.toLocaleString(), sub2:'방문 '+s2.V.toLocaleString()},
+    {label:'방문수', v1:s1.V.toLocaleString(), v2:s2.V.toLocaleString(), delta:deltaTag(s1.V,s2.V,false), sub1:'일 평균 '+Math.round(s1.V/s1.n).toLocaleString()+'명', sub2:'일 평균 '+Math.round(s2.V/s2.n).toLocaleString()+'명'},
+    {label:'구매 전환율', v1:cv1+'%', v2:cv2+'%', delta:deltaTag(+cv1,+cv2,false), sub1:'주문/방문', sub2:'주문/방문'},
     {label:'환불율', v1:rf1+'%', v2:rf2+'%', delta:deltaTag(+rf1,+rf2,true), sub1:'환불 '+s1.R.toLocaleString()+'건', sub2:'환불 '+s2.R.toLocaleString()+'건'},
   ];
 
@@ -822,18 +866,17 @@ function updateCompare(){
 }
 
 function drawCompare(){
-  // Two-line chart
-  const colors=[css('--accent'), css('--cmp')];
-  const fills=['rgba(37,99,235,0.07)','rgba(217,119,6,0.07)'];
-  // resolve dark mode fills
-  const f1=activeMain==='compare'? (document.documentElement.getAttribute('data-theme')==='dark'||
-    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches)?
-    'rgba(96,165,250,0.09)':'rgba(37,99,235,0.07)') : css('--cfill');
-  const f2=activeMain==='compare'? (document.documentElement.getAttribute('data-theme')==='dark'||
-    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches)?
-    'rgba(245,158,11,0.09)':'rgba(217,119,6,0.07)') : 'rgba(217,119,6,0.07)';
+  const isDark=document.documentElement.getAttribute('data-theme')==='dark'||
+    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+  const f1=isDark?'rgba(96,165,250,0.09)':'rgba(37,99,235,0.07)';
+  const f2=isDark?'rgba(245,158,11,0.09)':'rgba(217,119,6,0.07)';
 
-  drawLineChart('cLineChart',[cData1,cData2],[css('--accent'),css('--cmp')],[f1,f2],cLineState,e=>{
+  const isS=cLineMode==='sales';
+  const line1=isS?cData1:cData1.map(d=>[d[0],d[2]]);
+  const line2=isS?cData2:cData2.map(d=>[d[0],d[2]]);
+  const fmtV=isS?fmtF:v=>v.toLocaleString()+'건';
+
+  drawLineChart('cLineChart',[line1,line2],[css('--accent'),css('--cmp')],[f1,f2],cLineState,e=>{
     if(!cLineState.n) return;
     const {pad,cW,n,data}=cLineState, rect=document.getElementById('cLineChart').getBoundingClientRect();
     const mx=e.clientX-rect.left;
@@ -843,15 +886,16 @@ function drawCompare(){
     document.getElementById('tt-date').textContent=(idx+1)+'일차';
     document.getElementById('tt-r1').className='tt-row p1';
     document.getElementById('tt-l1').textContent='기간1 · '+(d1?d1[0]:'-');
-    document.getElementById('tt-v1').textContent=d1?fmtF(d1[1]):'-';
+    document.getElementById('tt-v1').textContent=d1?fmtV(d1[1]):'-';
     document.getElementById('tt-r2').style.display=d2?'flex':'none';
     document.getElementById('tt-l2').textContent='기간2 · '+(d2?d2[0]:'-');
-    document.getElementById('tt-v2').textContent=d2?fmtF(d2[1]):'-';
+    document.getElementById('tt-v2').textContent=d2?fmtV(d2[1]):'-';
     document.getElementById('tt-r2').className='tt-row p2';
     document.getElementById('tt-r3').style.display='none';
     showTT(e);
   });
   drawCmpBar();
+  drawCmpCatCharts();
 }
 
 function drawCmpBar(){
