@@ -48,10 +48,11 @@ if not xlsx_files:
 
 print(f'파일 {len(xlsx_files)}개 발견:')
 
-daily    = defaultdict(lambda: {'s': 0, 'o': 0, 'r': 0, 'v': 0})
-prod_all = defaultdict(lambda: {'s': 0, 'o': 0})
-prod_mon = defaultdict(lambda: defaultdict(lambda: {'s': 0, 'o': 0}))
-prod_map = {}  # code -> {name, s}
+daily         = defaultdict(lambda: {'s': 0, 'o': 0, 'r': 0, 'v': 0})
+prod_all      = defaultdict(lambda: {'s': 0, 'o': 0})
+prod_mon      = defaultdict(lambda: defaultdict(lambda: {'s': 0, 'o': 0}))
+prod_map      = {}  # code -> {name, s}
+prod_code_mon = defaultdict(lambda: defaultdict(int))  # mm -> code -> sales
 
 for fname in xlsx_files:
     try:
@@ -78,6 +79,7 @@ for fname in xlsx_files:
                 if code not in prod_map:
                     prod_map[code] = {'name': name, 's': 0}
                 prod_map[code]['s'] += s
+                prod_code_mon[mm][code] += int(s)
             cnt += 1
         print(f'  OK  {fname}  ({cnt:,}행)')
         wb.close()
@@ -130,6 +132,14 @@ for code, v in sorted(prod_map.items(), key=lambda x: x[1]['s'], reverse=True):
     pl_rows.append(f'  ["{code}","{nm}","{maj}","{mn}"]')
 prod_list_js = 'const PROD_LIST=[\n' + ',\n'.join(pl_rows) + '\n];'
 
+# PROD_SALES: {all:{code:sales}, '07':{code:sales}, ...}
+ps_all = {c: int(v['s']) for c, v in prod_map.items()}
+ps_parts = ['  all:' + json.dumps(ps_all, ensure_ascii=False, separators=(',', ':'))]
+for mm in months:
+    ps_m = {c: int(s) for c, s in prod_code_mon[mm].items()}
+    ps_parts.append(f"  '{mm}':" + json.dumps(ps_m, ensure_ascii=False, separators=(',', ':')))
+prod_sales_js = 'const PROD_SALES={\n' + ',\n'.join(ps_parts) + '\n};'
+
 # ── 3. dashboard.html 패치 ──────────────────────────────────────
 
 def replace_block(html, start, end, new_js):
@@ -160,6 +170,7 @@ html = replace_block(html, 'const TOP_S = {',   '\n};', top_s_js)
 html = replace_block(html, 'const TOP_O = {',   '\n};', top_o_js)
 html = replace_block(html, 'const PEAKS = ',    ';',    peaks_js)
 html = replace_block(html, 'const NEW_PRODS=',  ';',    new_prods_js)
+html = replace_block(html, 'const PROD_SALES={\n', '\n};', prod_sales_js)
 html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
 
 # 타이틀 날짜 범위 업데이트 (예: 2026.07–08)
