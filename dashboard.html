@@ -1,0 +1,1162 @@
+<title>매출 추이 대시보드 · 2026.07–08</title>
+<style>
+  :root {
+    --bg:#F7F8FA; --surface:#FFFFFF; --surface2:#F0F2F5; --border:#E4E7ED;
+    --text-1:#111827; --text-2:#4B5563; --text-3:#9CA3AF;
+    --accent:#2563EB; --accent-lt:#EEF2FF;
+    --cmp:#D97706; --cmp-lt:#FEF3C7;
+    --peak:#DC2626; --good:#16A34A; --warn:#D97706;
+    --cline:#2563EB; --cfill:rgba(37,99,235,0.07);
+    --bs1:#2563EB; --bs2:#BFDBFE; --bo1:#7C3AED; --bo2:#DDD6FE;
+  }
+  @media(prefers-color-scheme:dark){:root{
+    --bg:#0F1117; --surface:#1A1D27; --surface2:#22263A; --border:#2E3347;
+    --text-1:#F3F4F6; --text-2:#9CA3AF; --text-3:#6B7280;
+    --accent:#60A5FA; --accent-lt:#1E2A45;
+    --cmp:#F59E0B; --cmp-lt:#2D2000;
+    --peak:#F87171; --good:#4ADE80; --warn:#FCD34D;
+    --cline:#60A5FA; --cfill:rgba(96,165,250,0.09);
+    --bs1:#60A5FA; --bs2:#1E3A5F; --bo1:#A78BFA; --bo2:#2D1F5E;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0F1117; --surface:#1A1D27; --surface2:#22263A; --border:#2E3347;
+    --text-1:#F3F4F6; --text-2:#9CA3AF; --text-3:#6B7280;
+    --accent:#60A5FA; --accent-lt:#1E2A45;
+    --cmp:#F59E0B; --cmp-lt:#2D2000;
+    --peak:#F87171; --good:#4ADE80; --warn:#FCD34D;
+    --cline:#60A5FA; --cfill:rgba(96,165,250,0.09);
+    --bs1:#60A5FA; --bs2:#1E3A5F; --bo1:#A78BFA; --bo2:#2D1F5E;
+  }
+  :root[data-theme="light"]{
+    --bg:#F7F8FA; --surface:#FFFFFF; --surface2:#F0F2F5; --border:#E4E7ED;
+    --text-1:#111827; --text-2:#4B5563; --text-3:#9CA3AF;
+    --accent:#2563EB; --accent-lt:#EEF2FF;
+    --cmp:#D97706; --cmp-lt:#FEF3C7;
+    --peak:#DC2626; --good:#16A34A; --warn:#D97706;
+    --cline:#2563EB; --cfill:rgba(37,99,235,0.07);
+    --bs1:#2563EB; --bs2:#BFDBFE; --bo1:#7C3AED; --bo2:#DDD6FE;
+  }
+
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Pretendard',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+    background:var(--bg);color:var(--text-1);font-size:14px;line-height:1.6;min-height:100vh}
+
+  /* Header */
+  .hdr{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:12px 24px;display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;z-index:110}
+  .hdr h1{font-size:16px;font-weight:700;letter-spacing:-.3px}
+  .hdr-range{font-size:12px;color:var(--text-3);margin-left:10px}
+  .theme-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text-2);
+    border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer}
+
+  /* Main tabs */
+  .main-tabs{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:0 24px;display:flex;position:sticky;top:44px;z-index:100}
+  .mtab{padding:10px 18px;border:none;background:transparent;color:var(--text-3);
+    font-size:13px;font-weight:600;cursor:pointer;
+    border-bottom:2px solid transparent;transition:all .15s}
+  .mtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+  /* Panes */
+  .pane{display:none}
+  .pane.active{display:block}
+
+  /* Filter bar (analysis) */
+  .filter-bar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:9px 24px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .flabel{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.4px;white-space:nowrap}
+  .chips{display:flex;gap:4px}
+  .chip{padding:4px 12px;border-radius:16px;border:1px solid var(--border);
+    background:var(--surface2);color:var(--text-2);font-size:12px;font-weight:600;
+    cursor:pointer;transition:all .12s}
+  .chip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+  .chip:hover:not(.active){background:var(--border)}
+  .date-row{display:none;align-items:center;gap:6px}
+  .date-row.on{display:flex}
+  .date-row input[type=date]{background:var(--surface2);border:1px solid var(--border);
+    color:var(--text-1);border-radius:6px;padding:4px 8px;font-size:12px;outline:none}
+  .date-row input:focus{border-color:var(--accent)}
+  .dsep{font-size:12px;color:var(--text-3)}
+  .apply-btn{padding:5px 12px;border-radius:6px;border:none;
+    background:var(--accent);color:#fff;font-size:12px;font-weight:600;cursor:pointer}
+  .fresult{font-size:11px;color:var(--text-3);margin-left:auto}
+  .fresult strong{color:var(--accent);font-variant-numeric:tabular-nums}
+
+  /* Compare settings bar */
+  .cmp-bar{background:var(--surface);border-bottom:1px solid var(--border);
+    padding:10px 24px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .period-setter{display:flex;align-items:center;gap:6px}
+  .pdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .pdot.p1{background:var(--accent)}
+  .pdot.p2{background:var(--cmp)}
+  .plabel{font-size:12px;font-weight:700;white-space:nowrap}
+  .plabel.p1{color:var(--accent)}
+  .plabel.p2{color:var(--cmp)}
+  .cmp-bar input[type=date]{background:var(--surface2);border:1px solid var(--border);
+    color:var(--text-1);border-radius:6px;padding:4px 8px;font-size:12px;outline:none}
+  .cmp-bar input:focus{border-color:var(--accent)}
+  .cmp-divider{width:1px;height:28px;background:var(--border);margin:0 4px}
+
+  /* Container */
+  .container{max-width:1140px;margin:0 auto;padding:18px 20px}
+
+  /* KPI */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .kpi-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.4px;margin-bottom:3px}
+  .kpi-value{font-size:22px;font-weight:800;letter-spacing:-.8px;font-variant-numeric:tabular-nums}
+  .kpi-sub{font-size:11px;color:var(--text-3);margin-top:2px}
+  .kpi-value.c-acc{color:var(--accent)} .kpi-value.c-good{color:var(--good)} .kpi-value.c-warn{color:var(--warn)}
+
+  /* Compare KPI */
+  .ckpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:700px){.ckpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .ckpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .ckpi-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.4px;margin-bottom:8px}
+  .ckpi-row{display:flex;align-items:baseline;gap:6px;margin-bottom:5px}
+  .ckpi-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:2px}
+  .ckpi-dot.p1{background:var(--accent)} .ckpi-dot.p2{background:var(--cmp)}
+  .ckpi-info{display:flex;flex-direction:column}
+  .ckpi-val{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+  .ckpi-meta{font-size:10px;color:var(--text-3)}
+  .ckpi-delta{font-size:10px;font-weight:700;margin-left:auto;padding:1px 5px;border-radius:4px}
+  .ckpi-delta.up{background:rgba(22,163,74,.1);color:var(--good)}
+  .ckpi-delta.dn{background:rgba(220,38,38,.1);color:var(--peak)}
+  .ckpi-delta.nu{background:var(--surface2);color:var(--text-3)}
+
+  /* Chart cards */
+  .chart-card{background:var(--surface);border:1px solid var(--border);
+    border-radius:10px;padding:16px 20px;margin-bottom:15px}
+  .chart-card h2{font-size:13px;font-weight:700;margin-bottom:2px}
+  .chart-card .sub{font-size:11px;color:var(--text-3);margin-bottom:10px}
+  canvas{display:block;width:100%!important}
+  .bar-grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:15px}
+  @media(max-width:760px){.bar-grid{grid-template-columns:1fr}}
+  .bar-grid .chart-card{margin-bottom:0}
+
+  /* Peak legend */
+  .peak-leg{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}
+  .pbadge{font-size:11px;padding:2px 7px;border-radius:12px;
+    background:var(--accent-lt);color:var(--accent);font-weight:600}
+  .pbadge.top{background:rgba(220,38,38,.1);color:var(--peak)}
+
+  /* Chart legend (compare) */
+  .chart-legend{display:flex;gap:16px;margin-bottom:10px}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2)}
+  .legend-line{width:24px;height:2px;border-radius:2px}
+
+  /* Product tab */
+  .prod-search-wrap{flex:1;min-width:140px;max-width:260px}
+  .prod-search{width:100%;background:var(--surface2);border:1px solid var(--border);
+    color:var(--text-1);border-radius:6px;padding:4px 10px;font-size:12px;outline:none}
+  .prod-search:focus{border-color:var(--accent)}
+  .save-btn{padding:5px 14px;border-radius:6px;border:none;background:var(--accent);
+    color:#fff;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .save-btn:hover{opacity:.88}
+  .prod-table-wrap{overflow-x:auto;padding:12px 24px 32px}
+  .prod-table{width:100%;border-collapse:collapse;font-size:13px}
+  .prod-table th{background:var(--surface2);padding:9px 12px;text-align:left;
+    font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--text-3);
+    border-bottom:2px solid var(--border)}
+  .prod-table td{padding:7px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .prod-table tbody tr:hover td{background:var(--surface2)}
+  .col-num{width:36px;text-align:center}
+  .col-code{width:128px}
+  .col-cat{width:136px}
+  .col-sub{width:160px}
+  .prod-sel{width:100%;background:var(--surface2);border:1px solid var(--border);
+    color:var(--text-1);border-radius:6px;padding:4px 6px;font-size:12px;cursor:pointer;outline:none}
+  .prod-sel:focus{border-color:var(--accent)}
+
+  /* Paired compare charts */
+  .cmp-pair{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:10px}
+  @media(max-width:700px){.cmp-pair{grid-template-columns:1fr}}
+  .pair-hdr{font-size:12px;font-weight:700;margin-bottom:7px;display:flex;align-items:center;gap:6px}
+  .pair-hdr.p1{color:var(--accent)} .pair-hdr.p2{color:var(--cmp)}
+  .pair-dot{width:9px;height:9px;border-radius:50%}
+  .pair-dot.p1{background:var(--accent)} .pair-dot.p2{background:var(--cmp)}
+  .pair-range{font-size:10px;font-weight:400;color:var(--text-3);margin-left:2px}
+
+  /* Tooltip */
+  #tt{position:fixed;pointer-events:none;z-index:999;
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:7px;padding:9px 13px;font-size:12px;
+    box-shadow:0 4px 16px rgba(0,0,0,.12);display:none;min-width:160px}
+  .tt-date{font-weight:700;color:var(--text-1);margin-bottom:5px}
+  .tt-row{display:flex;justify-content:space-between;gap:14px;
+    color:var(--text-2);line-height:1.8}
+  .tt-val{font-weight:600;color:var(--text-1);font-variant-numeric:tabular-nums}
+  .tt-row.p1 .tt-lbl{color:var(--accent)}
+  .tt-row.p2 .tt-lbl{color:var(--cmp)}
+</style>
+
+<!-- Header -->
+<div class="hdr">
+  <div style="display:flex;align-items:baseline">
+    <h1>매출 추이 대시보드</h1>
+    <span class="hdr-range" id="hdrRange">2026.07.01 – 2026.08.23 · 54일</span>
+  </div>
+  <button class="theme-btn" onclick="toggleTheme()">🌙 다크</button>
+</div>
+
+<!-- Main tabs -->
+<div class="main-tabs">
+  <button class="mtab active" id="mtab-analysis" onclick="switchMain('analysis')">분석</button>
+  <button class="mtab" id="mtab-compare" onclick="switchMain('compare')">비교</button>
+  <button class="mtab" id="mtab-category" onclick="switchMain('category')">상품 관리</button>
+</div>
+
+<!-- Tooltip -->
+<div id="tt">
+  <div class="tt-date" id="tt-date"></div>
+  <div class="tt-row" id="tt-r1"><span class="tt-lbl" id="tt-l1">순매출</span><span class="tt-val" id="tt-v1"></span></div>
+  <div class="tt-row" id="tt-r2"><span class="tt-lbl" id="tt-l2">주문</span><span class="tt-val" id="tt-v2"></span></div>
+  <div class="tt-row" id="tt-r3"><span class="tt-lbl" id="tt-l3">방문</span><span class="tt-val" id="tt-v3"></span></div>
+</div>
+
+<!-- ════ ANALYSIS PANE ════ -->
+<div id="pane-analysis" class="pane active">
+  <div class="filter-bar">
+    <span class="flabel">기간</span>
+    <div class="chips">
+      <button class="chip active" data-v="all"    onclick="setChip(this,'all')">전체</button>
+      <button class="chip"        data-v="07"     onclick="setChip(this,'07')">7월</button>
+      <button class="chip"        data-v="08"     onclick="setChip(this,'08')">8월</button>
+      <button class="chip"        data-v="custom" onclick="setChip(this,'custom')">직접 지정</button>
+    </div>
+    <div class="date-row" id="aDateRow">
+      <input type="date" id="aFrom" value="2026-07-01" min="2026-07-01" max="2026-08-23">
+      <span class="dsep">–</span>
+      <input type="date" id="aTo"   value="2026-08-23" min="2026-07-01" max="2026-08-23">
+      <button class="apply-btn" onclick="applyAnalysis()">적용</button>
+    </div>
+    <span class="fresult" id="aResult">총 54일 · <strong>24.4억</strong></span>
+  </div>
+
+  <div class="container">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">총 순매출</div>
+        <div class="kpi-value c-acc" id="a-ks">24.4억</div>
+        <div class="kpi-sub" id="a-ks2">2,439,730,820원</div></div>
+      <div class="kpi"><div class="kpi-label">총 주문건수</div>
+        <div class="kpi-value" id="a-ko">37,358건</div>
+        <div class="kpi-sub" id="a-ko2">일 평균 691건</div></div>
+      <div class="kpi"><div class="kpi-label">구매 전환율</div>
+        <div class="kpi-value c-good" id="a-kc">4.2%</div>
+        <div class="kpi-sub" id="a-kv">방문 891,547명</div></div>
+      <div class="kpi"><div class="kpi-label">환불율</div>
+        <div class="kpi-value c-warn" id="a-kr">10.2%</div>
+        <div class="kpi-sub" id="a-kr2">환불 3,815건</div></div>
+    </div>
+    <div class="chart-card">
+      <h2>일별 순매출 추이</h2>
+      <div class="sub" id="aLineSub">일별 순매출</div>
+      <div class="peak-leg" id="aPeakLeg"></div>
+      <canvas id="aLineChart"></canvas>
+    </div>
+    <div class="bar-grid">
+      <div class="chart-card">
+        <h2>TOP 10 · 순매출 기준</h2>
+        <div class="sub" id="aSalesSub">기간 내 순매출 상위 10개</div>
+        <canvas id="aSalesChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>TOP 10 · 결제수 기준</h2>
+        <div class="sub" id="aOrdersSub">기간 내 결제수 상위 10개</div>
+        <canvas id="aOrdersChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ COMPARE PANE ════ -->
+<div id="pane-compare" class="pane">
+  <div class="cmp-bar">
+    <div class="period-setter">
+      <span class="pdot p1"></span>
+      <span class="plabel p1">기간 1</span>
+      <input type="date" id="c1From" value="2026-07-01" min="2026-07-01" max="2026-08-23">
+      <span class="dsep">–</span>
+      <input type="date" id="c1To"   value="2026-07-31" min="2026-07-01" max="2026-08-23">
+    </div>
+    <div class="cmp-divider"></div>
+    <div class="period-setter">
+      <span class="pdot p2"></span>
+      <span class="plabel p2">기간 2</span>
+      <input type="date" id="c2From" value="2026-08-01" min="2026-07-01" max="2026-08-23">
+      <span class="dsep">–</span>
+      <input type="date" id="c2To"   value="2026-08-23" min="2026-07-01" max="2026-08-23">
+    </div>
+    <button class="apply-btn" onclick="applyCompare()">비교 적용</button>
+  </div>
+
+  <div class="container">
+    <!-- Compare KPI cards -->
+    <div class="ckpi-grid" id="cKpiGrid">
+      <!-- rendered by JS -->
+    </div>
+
+    <!-- Compare line chart -->
+    <div class="chart-card">
+      <h2>순매출 추이 비교</h2>
+      <div class="sub" id="cLineSub">두 기간의 일별 순매출 비교 (1일차 기준 정렬)</div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-line" id="leg1" style="background:var(--accent)"></div>
+          <span id="leg1-label">기간 1</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-line" id="leg2" style="background:var(--cmp)"></div>
+          <span id="leg2-label">기간 2</span>
+        </div>
+      </div>
+      <canvas id="cLineChart"></canvas>
+    </div>
+
+    <!-- Compare TOP10 순매출 -->
+    <div class="chart-card">
+      <h2>순매출 TOP 10 비교</h2>
+      <div class="sub">* 상품 데이터는 선택 기간과 가장 근접한 월 기준</div>
+      <div class="cmp-pair">
+        <div>
+          <div class="pair-hdr p1"><span class="pair-dot p1"></span>기간 1<span class="pair-range" id="cSLb1"></span></div>
+          <canvas id="cSales1"></canvas>
+        </div>
+        <div>
+          <div class="pair-hdr p2"><span class="pair-dot p2"></span>기간 2<span class="pair-range" id="cSLb2"></span></div>
+          <canvas id="cSales2"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compare TOP10 결제수 -->
+    <div class="chart-card">
+      <h2>결제수 TOP 10 비교</h2>
+      <div class="sub">* 상품 데이터는 선택 기간과 가장 근접한 월 기준</div>
+      <div class="cmp-pair">
+        <div>
+          <div class="pair-hdr p1"><span class="pair-dot p1"></span>기간 1<span class="pair-range" id="cOLb1"></span></div>
+          <canvas id="cOrders1"></canvas>
+        </div>
+        <div>
+          <div class="pair-hdr p2"><span class="pair-dot p2"></span>기간 2<span class="pair-range" id="cOLb2"></span></div>
+          <canvas id="cOrders2"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PRODUCT PANE ════ -->
+<div id="pane-category" class="pane">
+  <div class="filter-bar" style="flex-wrap:wrap;gap:6px 8px">
+    <span class="flabel">필터</span>
+    <div class="chips" id="pChips" style="flex-wrap:wrap;gap:4px">
+      <button class="chip active" onclick="setPFilter(this,'전체')">전체</button>
+      <button class="chip" onclick="setPFilter(this,'여행')">여행</button>
+      <button class="chip" onclick="setPFilter(this,'리빙')">리빙</button>
+      <button class="chip" onclick="setPFilter(this,'미분류')">미분류</button>
+    </div>
+    <div class="prod-search-wrap">
+      <input type="text" class="prod-search" id="prodSearch" placeholder="상품명 · 상품번호 검색…" oninput="renderProdTable()">
+    </div>
+    <button class="save-btn" id="saveCatBtn" onclick="saveCats()">저장</button>
+    <span class="fresult" id="pResult"></span>
+  </div>
+  <div class="prod-table-wrap">
+    <table class="prod-table">
+      <thead>
+        <tr>
+          <th class="col-num">#</th>
+          <th class="col-code">채널상품번호</th>
+          <th>상품명</th>
+          <th class="col-cat">대카테고리</th>
+          <th class="col-sub">세부카테고리</th>
+        </tr>
+      </thead>
+      <tbody id="prodTbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const ALL = [ // [label, sales, orders, refunds, visits]
+  ["07/01",59550060,810,101,16874],
+  ["07/02",51826650,763,111,14865],
+  ["07/03",48706800,675,93,13739],
+  ["07/04",51233140,672,42,14816],
+  ["07/05",95938190,1176,77,18530],
+  ["07/06",43877710,588,94,13410],
+  ["07/07",43986700,570,56,11988],
+  ["07/08",36388560,501,55,11111],
+  ["07/09",32008160,480,60,11666],
+  ["07/10",36346920,497,59,10684],
+  ["07/11",36269520,467,26,10654],
+  ["07/12",36622470,495,31,12336],
+  ["07/13",142793160,2467,180,33818],
+  ["07/14",42903480,672,78,22526],
+  ["07/15",42127160,649,50,18135],
+  ["07/16",34317290,539,71,14669],
+  ["07/17",45938630,704,40,17498],
+  ["07/18",35523150,526,41,16445],
+  ["07/19",52587250,699,51,22490],
+  ["07/20",203201370,3853,381,61699],
+  ["07/21",42057450,675,127,22383],
+  ["07/22",48678200,838,126,20442],
+  ["07/23",36825850,572,92,15604],
+  ["07/24",31228850,483,88,13500],
+  ["07/25",34521320,520,49,13513],
+  ["07/26",40248460,542,41,13927],
+  ["07/27",36671730,531,83,14686],
+  ["07/28",25006150,435,108,12451],
+  ["07/29",26231000,402,63,12120],
+  ["07/30",28090520,411,44,12360],
+  ["07/31",26966850,403,58,11976],
+  ["08/01",53696340,926,56,20457],
+  ["08/02",41520290,590,36,17492],
+  ["08/03",53463940,588,53,16996],
+  ["08/04",39289440,597,62,16079],
+  ["08/05",40393130,576,25,16444],
+  ["08/06",36055580,547,53,15655],
+  ["08/07",31620260,520,64,14650],
+  ["08/08",34604050,528,38,14973],
+  ["08/09",48128140,773,51,19125],
+  ["08/10",108252480,1964,180,28563],
+  ["08/11",23589980,369,54,15273],
+  ["08/12",30911030,457,54,13141],
+  ["08/13",31489480,332,23,11993],
+  ["08/14",20701110,395,112,12015],
+  ["08/15",27091140,395,17,11966],
+  ["08/16",30429410,448,23,13011],
+  ["08/17",43796390,691,42,18811],
+  ["08/18",36733480,548,23,15888],
+  ["08/19",32161210,513,57,14288],
+  ["08/20",31946360,448,19,13345],
+  ["08/21",28718510,506,120,12455],
+  ["08/22",30629710,491,44,13066],
+  ["08/23",35836610,541,33,14946]
+];
+
+const TOP_S = {
+  all:[["브랜든 이불 압축 파우치 세트 XXL 2",245493710],["브랜든 세이프 플러스 월렛백 여권 가방",168961070],["브랜든 이불 압축 파우치 세트 XXL 4",164314370],["브랜든 세이프 플러스 크로스백 여행용 나",144645910],["세이프 데이즈 숄더백",125608160],["브랜든 여행 압축 파우치 세트 S+S+M",118130380],["브랜든 아우터 압축 파우치 M+L 세트",110774400],["이불 압축 파우치 와이드 2개 시스템 행",85369770],["브랜든 여행 압축 파우치 라이트 S+S+",61776360],["브랜든 세이프 플러스 백팩 여행용 도난방",58543490]],
+  '07':[["브랜든 이불 압축 파우치 세트 XXL 2",165640880],["브랜든 이불 압축 파우치 세트 XXL 4",117578520],["브랜든 세이프 플러스 월렛백 여권 가방",91981620],["세이프 데이즈 숄더백",87171570],["브랜든 아우터 압축 파우치 M+L 세트",77746870],["브랜든 세이프 플러스 크로스백 여행용 나",75026510],["브랜든 여행 압축 파우치 세트 S+S+M",74146810],["이불 압축 파우치 와이드 2개 시스템 행",57824020],["세이프 데이즈 3way 미니백",37898900],["브랜든 여행 압축 파우치 라이트 S+S+",36844310]],
+  '08':[["브랜든 이불 압축 파우치 세트 XXL 2",79852830],["브랜든 세이프 플러스 월렛백 여권 가방",76979450],["브랜든 세이프 플러스 크로스백 여행용 나",69619400],["브랜든 이불 압축 파우치 세트 XXL 4",46735850],["브랜든 여행 압축 파우치 세트 S+S+M",43983570],["세이프 데이즈 숄더백",38436590],["브랜든 아우터 압축 파우치 M+L 세트",33027530],["이불 압축 파우치 와이드 2개 시스템 행",27545750],["세이프 데이즈 백팩",27236660],["브랜든 여행 압축 파우치 라이트 S+S+",24932050]]
+};
+const TOP_O = {
+  all:[["브랜든 세이프 플러스 월렛백 여권 가방",4650],["브랜든 세이프 플러스 크로스백 여행용 나",2790],["브랜든 이불 압축 파우치 세트 XXL 2",2726],["세이프 데이즈 숄더백",2517],["브랜든 여행 압축 파우치 세트 S+S+M",1649],["브랜든 세이프 크로스 바디백 S 1개 도",1297],["세이프 데이즈 3way 미니백",1216],["브랜든 이불 압축 파우치 세트 XXL 4",1107],["이불 압축 파우치 와이드 2개 시스템 행",1048],["브랜든 워시백 1개 세면 도구 정리",1027]],
+  '07':[["브랜든 세이프 플러스 월렛백 여권 가방",2487],["브랜든 이불 압축 파우치 세트 XXL 2",1843],["세이프 데이즈 숄더백",1779],["브랜든 세이프 플러스 크로스백 여행용 나",1490],["브랜든 여행 압축 파우치 세트 S+S+M",1032],["세이프 데이즈 3way 미니백",845],["브랜든 이불 압축 파우치 세트 XXL 4",805],["브랜든 세이프 크로스 바디백 S 1개 도",769],["이불 압축 파우치 와이드 2개 시스템 행",716],["브랜든 아우터 압축 파우치 M+L 세트",697]],
+  '08':[["브랜든 세이프 플러스 월렛백 여권 가방",2163],["브랜든 세이프 플러스 크로스백 여행용 나",1300],["브랜든 이불 압축 파우치 세트 XXL 2",883],["세이프 데이즈 숄더백",738],["브랜든 여행 압축 파우치 세트 S+S+M",617],["브랜든 세이프 크로스 바디백 S 1개 도",528],["브랜든 워시백 1개 세면 도구 정리",424],["세이프 데이즈 3way 미니백",371],["브랜든 여행 압축 파우치 라이트 S+S+",365],["세이프 데이즈 백팩",356]]
+};
+
+const PEAKS = {"07/05":1,"07/13":1,"07/20":1,"08/10":1};
+
+// ══════════════════════════════════════════════════════════════
+// SHARED UTILS
+// ══════════════════════════════════════════════════════════════
+const tt = document.getElementById('tt');
+function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() }
+function fmtS(v){ return v>=1e8?(v/1e8).toFixed(1)+'억':v>=1e4?Math.round(v/1e4).toLocaleString()+'만':v.toLocaleString() }
+function fmtF(v){ return v.toLocaleString()+'원' }
+function hideTT(){ tt.style.display='none' }
+function showTT(e){ tt.style.display='block'; tt.style.left=Math.min(e.clientX+14,innerWidth-175)+'px'; tt.style.top=(e.clientY-80)+'px' }
+
+function pick10(data){ // pick best top10 key from filtered data
+  const mm=[...new Set(data.map(d=>d[0].slice(0,2)))];
+  return mm.length===1?mm[0]:'all';
+}
+
+function getStats(data){
+  return {
+    S:data.reduce((a,d)=>a+d[1],0),
+    O:data.reduce((a,d)=>a+d[2],0),
+    R:data.reduce((a,d)=>a+d[3],0),
+    V:data.reduce((a,d)=>a+d[4],0),
+    n:data.length||1
+  };
+}
+
+// ══════════════════════════════════════════════════════════════
+// THEME
+// ══════════════════════════════════════════════════════════════
+function toggleTheme(){
+  const r=document.documentElement;
+  const isDark=r.getAttribute('data-theme')==='dark'||
+    (!r.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches);
+  r.setAttribute('data-theme',isDark?'light':'dark');
+  document.querySelector('.theme-btn').textContent=isDark?'🌙 다크':'☀️ 라이트';
+  requestAnimationFrame(redrawActive);
+}
+
+// ══════════════════════════════════════════════════════════════
+// MAIN TAB SWITCH
+// ══════════════════════════════════════════════════════════════
+let activeMain = 'analysis';
+function switchMain(tab){
+  activeMain = tab;
+  document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mtab-'+tab).classList.add('active');
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+tab).classList.add('active');
+  requestAnimationFrame(redrawActive);
+}
+function redrawActive(){
+  if(activeMain==='analysis') drawAnalysis();
+  else if(activeMain==='compare') drawCompare();
+}
+
+// ══════════════════════════════════════════════════════════════
+// ANALYSIS TAB
+// ══════════════════════════════════════════════════════════════
+let aData=ALL.slice(), aS10=TOP_S.all, aO10=TOP_O.all;
+
+function setChip(btn, v){
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  const dr=document.getElementById('aDateRow');
+  if(v==='custom'){ dr.classList.add('on'); return; }
+  dr.classList.remove('on');
+  if(v==='all'){ aData=ALL.slice(); aS10=TOP_S.all; aO10=TOP_O.all; }
+  else{ aData=ALL.filter(d=>d[0].startsWith(v)); aS10=TOP_S[v]; aO10=TOP_O[v]; }
+  updateAnalysis();
+}
+
+function applyAnalysis(){
+  const f=document.getElementById('aFrom').value, t=document.getElementById('aTo').value;
+  if(!f||!t||f>t) return;
+  const fl=f.slice(5).replace('-','/'), tl=t.slice(5).replace('-','/');
+  aData=ALL.filter(d=>d[0]>=fl&&d[0]<=tl);
+  const k=pick10(aData); aS10=TOP_S[k]; aO10=TOP_O[k];
+  updateAnalysis();
+}
+
+function updateAnalysis(){
+  const {S,O,R,V,n}=getStats(aData);
+  const cvr=V?(O/V*100).toFixed(1):0, ref=O?(R/O*100).toFixed(1):0;
+  document.getElementById('a-ks').textContent=fmtS(S);
+  document.getElementById('a-ks2').textContent=S.toLocaleString()+'원';
+  document.getElementById('a-ko').textContent=O.toLocaleString()+'건';
+  document.getElementById('a-ko2').textContent='일 평균 '+Math.round(O/n).toLocaleString()+'건';
+  document.getElementById('a-kc').textContent=cvr+'%';
+  document.getElementById('a-kv').textContent='방문 '+V.toLocaleString()+'명';
+  document.getElementById('a-kr').textContent=ref+'%';
+  document.getElementById('a-kr2').textContent='환불 '+R.toLocaleString()+'건';
+  document.getElementById('aResult').innerHTML='총 '+n+'일 · <strong>'+fmtS(S)+'</strong>';
+  if(aData.length){
+    const f='2026.'+aData[0][0].replace('/','.'),t2='2026.'+aData[aData.length-1][0].replace('/','.');
+    document.getElementById('hdrRange').textContent=(f===t2?f:f+' – '+t2)+' · '+n+'일';
+  }
+  // peak legend
+  const vis=aData.filter(d=>PEAKS[d[0]]).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('aPeakLeg').innerHTML=vis.map((d,i)=>
+    `<span class="pbadge${i===0?' top':''}">${d[0]} ${fmtS(d[1])}</span>`).join('');
+  // bar sub
+  const lbl=aData.length?aData[0][0]+(aData.length>1?' – '+aData[aData.length-1][0]:''):'';
+  document.getElementById('aSalesSub').textContent=lbl+' 순매출 상위 10개';
+  document.getElementById('aOrdersSub').textContent=lbl+' 결제수 상위 10개';
+  drawAnalysis();
+}
+
+// ── Analysis charts ────────────────────────────────────────────
+let aLineState={};
+function drawAnalysis(){
+  drawLineChart('aLineChart', [aData], [css('--cline')], [css('--cfill')], aLineState, e=>{
+    if(!aLineState.n) return;
+    const {pad,cW,n,data}=aLineState, rect=document.getElementById('aLineChart').getBoundingClientRect();
+    const mx=e.clientX-rect.left;
+    if(mx<pad.left||mx>pad.left+cW){hideTT();return;}
+    const idx=Math.max(0,Math.min(n-1,Math.round((mx-pad.left)/cW*(n-1))));
+    const d=data[0][idx];
+    document.getElementById('tt-date').textContent='2026.'+d[0].replace('/','.') ;
+    document.getElementById('tt-r1').className='tt-row'; document.getElementById('tt-l1').textContent='순매출'; document.getElementById('tt-v1').textContent=fmtF(d[1]);
+    document.getElementById('tt-r2').style.display='flex'; document.getElementById('tt-l2').textContent='주문'; document.getElementById('tt-v2').textContent=d[2].toLocaleString()+'건';
+    document.getElementById('tt-r3').style.display='flex'; document.getElementById('tt-l3').textContent='방문'; document.getElementById('tt-v3').textContent=d[4].toLocaleString()+'명';
+    showTT(e);
+  });
+  drawBarChart('aSalesChart', aS10, '--bs1','--bs2', v=>fmtF(v), 'barA-S');
+  drawBarChart('aOrdersChart', aO10, '--bo1','--bo2', v=>v.toLocaleString()+'건', 'barA-O');
+}
+
+// ══════════════════════════════════════════════════════════════
+// COMPARE TAB
+// ══════════════════════════════════════════════════════════════
+let cData1=ALL.filter(d=>d[0].startsWith('07'));
+let cData2=ALL.filter(d=>d[0].startsWith('08'));
+let cLineState={};
+
+function applyCompare(){
+  const f1=document.getElementById('c1From').value, t1=document.getElementById('c1To').value;
+  const f2=document.getElementById('c2From').value, t2=document.getElementById('c2To').value;
+  const fl1=f1.slice(5).replace('-','/'), tl1=t1.slice(5).replace('-','/');
+  const fl2=f2.slice(5).replace('-','/'), tl2=t2.slice(5).replace('-','/');
+  cData1=ALL.filter(d=>d[0]>=fl1&&d[0]<=tl1);
+  cData2=ALL.filter(d=>d[0]>=fl2&&d[0]<=tl2);
+  updateCompare();
+}
+
+function cmpLabel(data){
+  if(!data.length) return '-';
+  const f=data[0][0], t=data[data.length-1][0];
+  return '2026.'+(f===t?f.replace('/','.'):f.replace('/','.') +' – '+t.replace('/','.' ));
+}
+
+function updateCompare(){
+  const s1=getStats(cData1), s2=getStats(cData2);
+  const cv1=s1.V?(s1.O/s1.V*100).toFixed(1):0, cv2=s2.V?(s2.O/s2.V*100).toFixed(1):0;
+  const rf1=s1.O?(s1.R/s1.O*100).toFixed(1):0, rf2=s2.O?(s2.R/s2.O*100).toFixed(1):0;
+  const lb1=cmpLabel(cData1), lb2=cmpLabel(cData2);
+
+  // Legend labels
+  document.getElementById('leg1-label').textContent='기간 1 ('+lb1+')';
+  document.getElementById('leg2-label').textContent='기간 2 ('+lb2+')';
+
+  function deltaTag(v1,v2,flip){
+    if(!v1) return '<span class="ckpi-delta nu">-</span>';
+    const d=((v2-v1)/Math.abs(v1)*100).toFixed(1);
+    const isUp=(d>0&&!flip)||(d<0&&flip);
+    return `<span class="ckpi-delta ${isUp?'up':'dn'}">${d>0?'+':''}${d}%</span>`;
+  }
+
+  const cards=[
+    {label:'총 순매출', v1:fmtS(s1.S), v2:fmtS(s2.S), delta:deltaTag(s1.S,s2.S,false), sub1:s1.S.toLocaleString()+'원', sub2:s2.S.toLocaleString()+'원'},
+    {label:'총 주문건수', v1:s1.O.toLocaleString()+'건', v2:s2.O.toLocaleString()+'건', delta:deltaTag(s1.O,s2.O,false), sub1:'일 평균 '+Math.round(s1.O/s1.n).toLocaleString()+'건', sub2:'일 평균 '+Math.round(s2.O/s2.n).toLocaleString()+'건'},
+    {label:'구매 전환율', v1:cv1+'%', v2:cv2+'%', delta:deltaTag(+cv1,+cv2,false), sub1:'방문 '+s1.V.toLocaleString(), sub2:'방문 '+s2.V.toLocaleString()},
+    {label:'환불율', v1:rf1+'%', v2:rf2+'%', delta:deltaTag(+rf1,+rf2,true), sub1:'환불 '+s1.R.toLocaleString()+'건', sub2:'환불 '+s2.R.toLocaleString()+'건'},
+  ];
+
+  document.getElementById('cKpiGrid').innerHTML = cards.map(c=>`
+    <div class="ckpi">
+      <div class="ckpi-label">${c.label}</div>
+      <div class="ckpi-row">
+        <span class="ckpi-dot p1"></span>
+        <div class="ckpi-info">
+          <span class="ckpi-val">${c.v1}</span>
+          <span class="ckpi-meta">${lb1}</span>
+        </div>
+      </div>
+      <div class="ckpi-row" style="margin-top:6px">
+        <span class="ckpi-dot p2"></span>
+        <div class="ckpi-info">
+          <span class="ckpi-val">${c.v2}</span>
+          <span class="ckpi-meta">${lb2}</span>
+        </div>
+        ${c.delta}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('cLineSub').textContent=lb1+' vs '+lb2;
+  drawCompare();
+}
+
+function drawCompare(){
+  // Two-line chart
+  const colors=[css('--accent'), css('--cmp')];
+  const fills=['rgba(37,99,235,0.07)','rgba(217,119,6,0.07)'];
+  // resolve dark mode fills
+  const f1=activeMain==='compare'? (document.documentElement.getAttribute('data-theme')==='dark'||
+    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches)?
+    'rgba(96,165,250,0.09)':'rgba(37,99,235,0.07)') : css('--cfill');
+  const f2=activeMain==='compare'? (document.documentElement.getAttribute('data-theme')==='dark'||
+    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches)?
+    'rgba(245,158,11,0.09)':'rgba(217,119,6,0.07)') : 'rgba(217,119,6,0.07)';
+
+  drawLineChart('cLineChart',[cData1,cData2],[css('--accent'),css('--cmp')],[f1,f2],cLineState,e=>{
+    if(!cLineState.n) return;
+    const {pad,cW,n,data}=cLineState, rect=document.getElementById('cLineChart').getBoundingClientRect();
+    const mx=e.clientX-rect.left;
+    if(mx<pad.left||mx>pad.left+cW){hideTT();return;}
+    const idx=Math.max(0,Math.min(n-1,Math.round((mx-pad.left)/cW*(n-1))));
+    const d1=data[0][idx], d2=data[1]?data[1][idx]:null;
+    document.getElementById('tt-date').textContent=(idx+1)+'일차';
+    document.getElementById('tt-r1').className='tt-row p1';
+    document.getElementById('tt-l1').textContent='기간1 · '+(d1?d1[0]:'-');
+    document.getElementById('tt-v1').textContent=d1?fmtF(d1[1]):'-';
+    document.getElementById('tt-r2').style.display=d2?'flex':'none';
+    document.getElementById('tt-l2').textContent='기간2 · '+(d2?d2[0]:'-');
+    document.getElementById('tt-v2').textContent=d2?fmtF(d2[1]):'-';
+    document.getElementById('tt-r2').className='tt-row p2';
+    document.getElementById('tt-r3').style.display='none';
+    showTT(e);
+  });
+  drawCmpBar();
+}
+
+function drawCmpBar(){
+  const k1=pick10(cData1), k2=pick10(cData2);
+  const s1=TOP_S[k1], s2=TOP_S[k2];
+  const o1=TOP_O[k1], o2=TOP_O[k2];
+  const lb1=cmpLabel(cData1), lb2=cmpLabel(cData2);
+
+  const setLbl=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=' · '+v; };
+  setLbl('cSLb1',lb1); setLbl('cSLb2',lb2);
+  setLbl('cOLb1',lb1); setLbl('cOLb2',lb2);
+
+  // Shared max scale per metric
+  const sMax=Math.max(s1[0][1],s2[0][1]);
+  const oMax=Math.max(o1[0][1],o2[0][1]);
+
+  const ac=css('--accent'), acLt=css('--bs2');
+  const cm=css('--cmp'), cmLt=document.documentElement.getAttribute('data-theme')==='dark'||
+    (!document.documentElement.getAttribute('data-theme')&&window.matchMedia('(prefers-color-scheme:dark)').matches)
+    ?'#78350F':'#FDE68A';
+
+  _drawBar('cSales1',  s1, ac, acLt, v=>fmtF(v),               sMax);
+  _drawBar('cSales2',  s2, cm, cmLt, v=>fmtF(v),               sMax);
+  _drawBar('cOrders1', o1, ac, acLt, v=>v.toLocaleString()+'건', oMax);
+  _drawBar('cOrders2', o2, cm, cmLt, v=>v.toLocaleString()+'건', oMax);
+}
+
+// ══════════════════════════════════════════════════════════════
+// CHART ENGINES
+// ══════════════════════════════════════════════════════════════
+
+// Line chart — supports 1 or 2 series
+function drawLineChart(canvasId, seriesArr, colors, fills, stateRef, onMove){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-40;
+  const H=Math.max(160,Math.min(230,W*0.2));
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  const pad={top:22,right:14,bottom:32,left:56};
+  const cW=W-pad.left-pad.right, cH=H-pad.top-pad.bottom;
+  const n=Math.max(...seriesArr.map(s=>s.length));
+  if(n===0) return;
+
+  // Compute y max across all series
+  const allVals=seriesArr.flatMap(s=>s.map(d=>d[1]));
+  const maxV=Math.max(...allVals)*1.1;
+  const xOf=i=>pad.left+(n===1?cW/2:i/(n-1)*cW);
+  const yOf=v=>pad.top+cH-v/maxV*cH;
+
+  // Grid
+  ctx.strokeStyle=css('--border'); ctx.lineWidth=1;
+  for(let g=0;g<=4;g++){
+    const y=pad.top+g/4*cH;
+    ctx.beginPath(); ctx.moveTo(pad.left,y); ctx.lineTo(pad.left+cW,y); ctx.stroke();
+    ctx.fillStyle=css('--text-3'); ctx.font='10px sans-serif'; ctx.textAlign='right';
+    ctx.fillText(fmtS(maxV*(1-g/4)), pad.left-6, y+4);
+  }
+
+  // Draw each series (fill first, then lines)
+  seriesArr.forEach((series,si)=>{
+    if(!series.length) return;
+    const sn=series.length;
+    // Area
+    ctx.beginPath();
+    ctx.moveTo(xOf(0),yOf(series[0][1]));
+    for(let i=1;i<sn;i++) ctx.lineTo(xOf(i),yOf(series[i][1]));
+    ctx.lineTo(xOf(sn-1),pad.top+cH); ctx.lineTo(xOf(0),pad.top+cH); ctx.closePath();
+    ctx.fillStyle=fills[si]; ctx.fill();
+  });
+  seriesArr.forEach((series,si)=>{
+    if(!series.length) return;
+    const sn=series.length;
+    ctx.beginPath();
+    ctx.moveTo(xOf(0),yOf(series[0][1]));
+    for(let i=1;i<sn;i++) ctx.lineTo(xOf(i),yOf(series[i][1]));
+    ctx.strokeStyle=colors[si]; ctx.lineWidth=2; ctx.lineJoin='round'; ctx.stroke();
+  });
+
+  // X labels
+  const isCompare=seriesArr.length>1;
+  ctx.fillStyle=css('--text-3'); ctx.font='10px sans-serif'; ctx.textAlign='center';
+  if(isCompare){
+    const step=n<=14?1:n<=31?3:5;
+    for(let i=0;i<n;i+=step) ctx.fillText((i+1)+'일', xOf(i), H-pad.bottom+13);
+    if((n-1)%step!==0) ctx.fillText(n+'일', xOf(n-1), H-pad.bottom+13);
+  } else {
+    const s0=seriesArr[0];
+    const step=s0.length<=10?1:s0.length<=20?2:s0.length<=31?4:7;
+    for(let i=0;i<s0.length;i+=step) ctx.fillText(s0[i][0], xOf(i), H-pad.bottom+13);
+    if((s0.length-1)%step!==0) ctx.fillText(s0[s0.length-1][0], xOf(s0.length-1), H-pad.bottom+13);
+  }
+
+  // Peaks (single series only)
+  if(!isCompare && seriesArr[0]){
+    seriesArr[0].forEach((d,i)=>{
+      if(!PEAKS[d[0]]) return;
+      const x=xOf(i),y=yOf(d[1]);
+      ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2);
+      ctx.fillStyle=css('--peak'); ctx.fill();
+      ctx.strokeStyle=css('--surface'); ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle=css('--peak'); ctx.font='bold 10px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(fmtS(d[1]), x, y<pad.top+18?y+16:y-9);
+    });
+  }
+
+  Object.assign(stateRef, {pad,cW,cH,n,data:seriesArr,W,H});
+
+  // Crosshair line (compare mode)
+  canvas._lastIdx=-1;
+  canvas.onmousemove=e=>{
+    if(!stateRef.n) return;
+    const rect=canvas.getBoundingClientRect();
+    const mx=e.clientX-rect.left;
+    const {pad,cW,n}=stateRef;
+    if(mx<pad.left||mx>pad.left+cW){hideTT();return;}
+    const idx=Math.max(0,Math.min(n-1,Math.round((mx-pad.left)/cW*(n-1))));
+    // redraw if index changed (for crosshair)
+    if(seriesArr.length>1 && idx!==canvas._lastIdx){
+      canvas._lastIdx=idx;
+      drawLineChart(canvasId,seriesArr,colors,fills,stateRef,onMove);
+      // Draw crosshair
+      const xc=xOf(idx);
+      ctx.beginPath(); ctx.moveTo(xc,pad.top); ctx.lineTo(xc,pad.top+cH);
+      ctx.strokeStyle=css('--text-3'); ctx.lineWidth=1; ctx.setLineDash([3,3]); ctx.stroke(); ctx.setLineDash([]);
+      // Dots on each series
+      seriesArr.forEach((series,si)=>{
+        if(idx>=series.length) return;
+        const y=yOf(series[idx][1]);
+        ctx.beginPath(); ctx.arc(xc,y,4,0,Math.PI*2);
+        ctx.fillStyle=colors[si]; ctx.fill();
+        ctx.strokeStyle=css('--surface'); ctx.lineWidth=2; ctx.stroke();
+      });
+    }
+    onMove(e);
+  };
+  canvas.onmouseleave=()=>{
+    hideTT();
+    canvas._lastIdx=-1;
+    if(seriesArr.length>1) drawLineChart(canvasId,seriesArr,colors,fills,stateRef,onMove);
+  };
+}
+
+// Bar chart
+function drawBarChart(canvasId, data, c1Var, c2Var, fmtVal){
+  // Full-width bar chart (analysis tab) - restore wider padLeft
+  const canvas=document.getElementById(canvasId);
+  if(!canvas||!data||!data.length) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-40;
+  const BH=24,BG=6,N=data.length;
+  const pT=8,pB=12,pL=148,pR=52;
+  const H=pT+N*(BH+BG)-BG+pB;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const cW=W-pL-pR, maxV=data[0][1];
+  for(let i=0;i<N;i++){
+    const [name,val]=data[i];
+    const y=pT+i*(BH+BG), bw=Math.max(3,val/maxV*cW), r=4;
+    const x0=pL,x1=pL+bw,y0=y,y1=y+BH;
+    ctx.fillStyle=i===0?css(c1Var):css(c2Var);
+    ctx.beginPath();
+    ctx.moveTo(x0,y0); ctx.lineTo(x1-r,y0);
+    ctx.arcTo(x1,y0,x1,y0+r,r); ctx.lineTo(x1,y1-r);
+    ctx.arcTo(x1,y1,x1-r,y1,r); ctx.lineTo(x0,y1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=css('--text-1');
+    ctx.font=i===0?'bold 12px sans-serif':'12px sans-serif';
+    ctx.textAlign='right'; ctx.fillText(name,pL-7,y+BH/2+4);
+    ctx.fillStyle=css('--text-2'); ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText(fmtVal(val),pL+bw+5,y+BH/2+4);
+  }
+  canvas._bState={pT,BH,BG,N,data,fmtVal};
+  canvas.onmousemove=e=>{
+    const s=canvas._bState; if(!s) return;
+    const rect=canvas.getBoundingClientRect(), my=e.clientY-rect.top;
+    for(let i=0;i<s.N;i++){
+      const y=s.pT+i*(s.BH+s.BG);
+      if(my>=y&&my<=y+s.BH){
+        const [name,val]=s.data[i];
+        document.getElementById('tt-date').textContent=name;
+        document.getElementById('tt-r1').className='tt-row';
+        document.getElementById('tt-l1').textContent='금액/건수';
+        document.getElementById('tt-v1').textContent=s.fmtVal(val);
+        document.getElementById('tt-r2').style.display='none';
+        document.getElementById('tt-r3').style.display='none';
+        showTT(e); return;
+      }
+    }
+    hideTT();
+  };
+  canvas.onmouseleave=hideTT;
+}
+
+function _drawBar(canvasId, data, color1, color2, fmtVal, sharedMax=null){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas||!data||!data.length) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.parentElement.clientWidth-8;
+  const BH=22, BG=6, N=data.length;
+  const pT=8,pB=12,pL=136,pR=46;
+  const H=pT+N*(BH+BG)-BG+pB;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  const cW=W-pL-pR, maxV=sharedMax||data[0][1];
+  for(let i=0;i<N;i++){
+    const [name,val]=data[i];
+    const y=pT+i*(BH+BG), bw=Math.max(3,val/maxV*cW), r=4;
+    const x0=pL,x1=pL+bw,y0=y,y1=y+BH;
+    ctx.fillStyle=i===0?color1:color2;
+    ctx.beginPath();
+    ctx.moveTo(x0,y0); ctx.lineTo(x1-r,y0);
+    ctx.arcTo(x1,y0,x1,y0+r,r); ctx.lineTo(x1,y1-r);
+    ctx.arcTo(x1,y1,x1-r,y1,r); ctx.lineTo(x0,y1); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=css('--text-1');
+    ctx.font=i===0?'bold 11.5px sans-serif':'11.5px sans-serif';
+    ctx.textAlign='right';
+    ctx.fillText(name, pL-7, y+BH/2+4);
+    ctx.fillStyle=css('--text-2'); ctx.font='11px sans-serif'; ctx.textAlign='left';
+    ctx.fillText(fmtVal(val), pL+bw+5, y+BH/2+4);
+  }
+  canvas._bState={pT,BH,BG,N,data,fmtVal};
+  canvas.onmousemove=e=>{
+    const s=canvas._bState; if(!s) return;
+    const rect=canvas.getBoundingClientRect();
+    const my=e.clientY-rect.top;
+    for(let i=0;i<s.N;i++){
+      const y=s.pT+i*(s.BH+s.BG);
+      if(my>=y&&my<=y+s.BH){
+        const [name,val]=s.data[i];
+        document.getElementById('tt-date').textContent=name;
+        document.getElementById('tt-r1').className='tt-row';
+        document.getElementById('tt-l1').textContent='금액/건수';
+        document.getElementById('tt-v1').textContent=s.fmtVal(val);
+        document.getElementById('tt-r2').style.display='none';
+        document.getElementById('tt-r3').style.display='none';
+        showTT(e); return;
+      }
+    }
+    hideTT();
+  };
+  canvas.onmouseleave=hideTT;
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+window.addEventListener('resize',redrawActive);
+
+// Set initial peak legend and bar subs for analysis
+updateAnalysis();
+applyCompare();
+
+// ══════════════════════════════════════════════════════════════
+// PRODUCT LIST DATA (137개 상품) [code, name, 대카테고리, 세부카테고리]
+// ══════════════════════════════════════════════════════════════
+const PROD_LIST=[
+  ["10980255096","브랜든 이불 압축 파우치 세트 XXL 2개 이불 정리 파우치","리빙","이불"],
+  ["12552361784","브랜든 세이프 플러스 월렛백 여권 가방","여행","플러스"],
+  ["10986187821","브랜든 이불 압축 파우치 세트 XXL 4개 이불 정리 파우치","리빙","이불"],
+  ["12552351393","브랜든 세이프 플러스 크로스백 여행용 나일론 크로스백 도난방지가방","여행","플러스"],
+  ["13648102368","세이프 데이즈 숄더백","여행","데이즈"],
+  ["10088686269","브랜든 여행 압축 파우치 세트 S+S+M+M+L 캐리어 정리백","여행","여행"],
+  ["12022749622","브랜든 아우터 압축 파우치 M+L 세트","리빙","아우터"],
+  ["13037011828","이불 압축 파우치 와이드 2개 시스템 행거 침대 하부장 틈새수납","리빙","와이드"],
+  ["11979825356","브랜든 여행 압축 파우치 라이트 S+S+M+M+L","여행","라이트"],
+  ["12552357162","브랜든 세이프 플러스 백팩 여행용 도난방지가방","여행","플러스"],
+  ["11028759350","브랜든 이불 압축 파우치 세트 XL 4개+XXL 2개 이불 정리 파우치","리빙","이불"],
+  ["10567314306","브랜든 세이프 크로스 바디백 S 1개 도난방지 가방","여행","세이프"],
+  ["13648114021","세이프 데이즈 3way 미니백","여행","데이즈"],
+  ["11012900820","브랜든 이불 압축 파우치 단품 XXL 1개 이불 정리 파우치","리빙","이불"],
+  ["13648093118","세이프 데이즈 백팩","여행","데이즈"],
+  ["10413960800","브랜든 이불 압축 파우치 세트 XL 3개 이불 정리 파우치","리빙","이불"],
+  ["9999452994","브랜든 이불 압축 파우치 세트 XL 2개 이불 정리 파우치","리빙","이불"],
+  ["11973679318","브랜든 아우터 압축 파우치 M 2개+ L 2개","리빙","아우터"],
+  ["9999432056","브랜든 이불 압축 파우치 세트 XL 6개 이불 정리 파우치","리빙","이불"],
+  ["10347767545","브랜든 이불 압축 파우치 단품 XL 1개 이불 정리 파우치","리빙","이불"],
+  ["12596629824","세이프 플러스 라인 크로스백 + 월렛백","여행","플러스"],
+  ["12596618050","세이프 플러스 라인 백팩+크로스백+월렛백","여행","플러스"],
+  ["11563441037","브랜든 아우터 압축 파우치 M 2개 옷장 정리","리빙","아우터"],
+  ["13089173875","이불 압축 파우치 와이드 올인원 세트 (XL+XXL+와이드) 시스템 행거 침대 하부장 틈새수납","리빙","와이드"],
+  ["11334880708","브랜든 세이프 백팩 1개 도난방지 가방","여행","세이프"],
+  ["13648101398","세이프 데이즈 토트백","여행","데이즈"],
+  ["11334875220","브랜든 세이프 크로스 바디백 L 1개 도난방지 가방","여행","세이프"],
+  ["10095805777","브랜든 워시백 1개 세면 도구 정리","여행","기타"],
+  ["12972193635","브랜든 멀티 행잉 오거나이저 1개 좁은 옷장 걸이 수납정리함","리빙","오거나이저"],
+  ["12972227813","브랜든 멀티 행잉 오거나이저 2개 좁은 옷장 걸이 수납정리함","리빙","오거나이저"],
+  ["11890963406","브랜든 멀티 패커블 보스턴백 1개","여행","패커블"],
+  ["10126313843","브랜든 여행 압축 파우치 세트 캐리어 정리백","여행","여행"],
+  ["12972767088","브랜든 멀티 행잉 오거나이저+아우터 압축 파우치 세트 좁은 옷장 걸이 수납정리함","리빙","아우터"],
+  ["12596626702","세이프 플러스 라인 백팩 + 월렛백","여행","플러스"],
+  ["12596621233","세이프 플러스 라인 백팩+크로스백","여행","플러스"],
+  ["10392621310","브랜든 여행 압축 파우치 워시백 세트 S+S+M+M+L+워시백","여행","여행"],
+  ["10567326745","브랜든 세이프 크로스 월렛백 1개 RFID 도난방지 여권지갑","여행","세이프"],
+  ["13694072539","[넷플릭스] 전용결제창","여행","기타"],
+  ["13654692447","[전용결제창] 세이프 크로스 바디백 S(블랙) 300개","여행","세이프"],
+  ["11973607716","브랜든 아우터 압축 파우치 세트 XXL 2개+ 아우터 L 2개","리빙","아우터"],
+  ["10567334929","브랜든 세이프 세트 바디백 S+월렛백 도난방지 가방","여행","세이프"],
+  ["11973528517","브랜든 아우터 압축 파우치 L 2개 옷장 정리","리빙","아우터"],
+  ["13346694105","[단독]브랜든 여권가방 세이프 플러스 월렛백x비아노숑 SET","여행","플러스"],
+  ["10712906917","브랜든 이불 압축 파우치 세트 XL 5개 이불 정리 파우치","리빙","이불"],
+  ["11563811158","브랜든 아우터 압축 파우치 세트 XXL 2개+XL 4개+아우터 M 2개 옷장 정리","리빙","아우터"],
+  ["11563415213","브랜든 아우터 압축 파우치 M 1개 옷장 정리","리빙","아우터"],
+  ["9317344571","브랜든 폴더블 토트백 1개 나일론 토트백","여행","패커블"],
+  ["10088702413","브랜든 여행 압축 파우치 세트 S+S+M+L 캐리어 정리백","여행","여행"],
+  ["10828876987","브랜든 뷰티 파우치 1개 화장품 파우치","여행","기타"],
+  ["11973509707","브랜든 아우터 압축 파우치 L 1개 옷장 정리","리빙","아우터"],
+  ["11979833962","브랜든 여행 압축 파우치 라이트 S+M+L","여행","라이트"],
+  ["13036285765","이불 압축 파우치 와이드 1개 시스템 행거 침대 하부장 틈새수납","리빙","와이드"],
+  ["11890942194","브랜든 멀티 패커블 백팩 1개","여행","패커블"],
+  ["13648102367","세이프 데이즈 숄더백","여행","데이즈"],
+  ["11993265659","여행 압축 파우치 라이트 S+M+M+L+워시백","여행","라이트"],
+  ["10496955237","브랜든 여행 압축 파우치 세트 S+M+M+L+워시백+슈즈 파우치 캐리어 정리백","여행","여행"],
+  ["11993202309","브랜든 여행 압축 파우치 라이트 S+M+L+L","여행","라이트"],
+  ["13627092431","[대량구매]브랜든 폴더블 캐리올 토트백(차콜그레이) 210개","여행","패커블"],
+  ["10182464103","브랜든 여행 압축 파우치 세트 S+M+워시백 캐리어 정리백","여행","여행"],
+  ["10403343398","브랜든 여행 압축 파우치 세트 M+L","여행","여행"],
+  ["12089676720","브랜든 세이프 크로스 세트 바디백 L+월렛백","여행","세이프"],
+  ["10088707144","브랜든 여행 압축 파우치 세트 S+S+M 캐리어 정리백","여행","여행"],
+  ["10095793786","브랜든 여행 압축 파우치 단품 L 1개","여행","여행"],
+  ["11890966728","브랜든 멀티 패커블 보스턴백 2개","여행","패커블"],
+  ["10095791140","브랜든 여행 압축 파우치 단품 M 1개","여행","여행"],
+  ["13648114020","세이프 데이즈 3way 미니백","여행","데이즈"],
+  ["12627777513","[세트] 브랜든 여행 압축 파우치 라이트 S+M+M+L+슈즈 파우치","여행","라이트"],
+  ["10392582894","브랜든 여행 압축 파우치 세트 S+S+M+M+L+토트백 캐리어 정리백","여행","여행"],
+  ["11973600001","브랜든 아우터 압축 파우치 세트 XL 2개+ 아우터 L 2개","리빙","아우터"],
+  ["12023312986","슈즈 파우치 2개","여행","기타"],
+  ["12089608673","브랜든 세이프 크로스 바디백 S+L","여행","세이프"],
+  ["11993207985","브랜든 여행 압축 파우치 라이트 S+S+M","여행","라이트"],
+  ["11993216135","브랜든 여행 압축 파우치 라이트 S+M","여행","라이트"],
+  ["9631359084","브랜든 폴더블 토트백 2개 나일론 토트백","여행","패커블"],
+  ["13648093119","세이프 데이즈 백팩","여행","데이즈"],
+  ["12972606473","브랜든 멀티 행잉 오거나이저+이불 압축 파우치 세트 좁은 옷장 걸이 수납정리함","리빙","이불"],
+  ["10775441934","브랜든 미니 큐브 파우치 키링 파우치","여행","기타"],
+  ["11993221235","브랜든 여행 압축 파우치 라이트 L","여행","라이트"],
+  ["10413830703","브랜든 여행 압축 파우치 세트 S+S+M+L+토트백 캐리어 정리백","여행","여행"],
+  ["12369059067","[이삿짐 정리 세트]브랜든 이불 압축 파우치 XL 6개+XXL 4개+아우터 M4개+L4개","리빙","이불"],
+  ["11890970139","브랜든 멀티 패커블 백팩+보스턴백","여행","패커블"],
+  ["11979003165","브랜든 여행 압축 파우치 라이트 S+S+M+L","여행","라이트"],
+  ["12017560151","백인백 멀티 파우치 1개","여행","기타"],
+  ["12017403662","슈즈 파우치 1개","여행","기타"],
+  ["11973542974","브랜든 아우터 압축 파우치 L 3개 옷장 정리","리빙","아우터"],
+  ["11993228736","브랜든 여행 압축 파우치 라이트 M","여행","라이트"],
+  ["10095788281","브랜든 여행 압축 파우치 단품 S 1개","여행","여행"],
+  ["11993234132","브랜든 여행 압축 파우치 라이트 S","여행","라이트"],
+  ["11890947116","브랜든 멀티 패커블 백팩 2개","여행","패커블"],
+  ["13648101397","세이프 데이즈 토트백","여행","데이즈"],
+  ["12552361783","브랜든 세이프 플러스 월렛백 여권 가방","여행","플러스"],
+  ["11973557911","브랜든 아우터 압축 파우치 L 4개 옷장 정리","리빙","아우터"],
+  ["12673927878","세이프 플러스 라인 크로스백 + 월렛백","여행","플러스"],
+  ["12023339334","백인백 멀티 파우치 2개","여행","기타"],
+  ["10403338630","브랜든 여행 압축 파우치 세트 S+L","여행","여행"],
+  ["10088686268","브랜든 여행 압축 파우치 세트 S+S+M+M+L 캐리어 정리백","여행","여행"],
+  ["12673926471","세이프 플러스 라인 백팩 + 월렛백","여행","플러스"],
+  ["11993216137","브랜든 여행 압축 파우치 라이트 S+M","여행","라이트"],
+  ["10567314307","브랜든 세이프 크로스 바디백 S 1개 도난방지 가방","여행","세이프"],
+  ["12673923673","세이프 플러스 라인 백팩+크로스백+월렛백","여행","플러스"],
+  ["12552351394","브랜든 세이프 플러스 크로스백 여행용 나일론 크로스백 도난방지가방","여행","플러스"],
+  ["10413838603","브랜든 여행 압축 파우치 세트 S+S+M+토트백 캐리어 정리백","여행","여행"],
+  ["11414114652","브랜든 세이프 크로스 바디백 L 1개 도난방지 가방","여행","세이프"],
+  ["12552357161","브랜든 세이프 플러스 백팩 여행용 도난방지가방","여행","플러스"],
+  ["10567326744","브랜든 세이프 크로스 월렛백 1개 RFID 도난방지 여권지갑","여행","세이프"],
+  ["11979825357","브랜든 여행 압축 파우치 라이트 S+S+M+M+L","여행","라이트"],
+  ["11386718649","브랜든 세이프 백팩 1개 도난방지 가방","여행","세이프"],
+  ["11890963404","브랜든 멀티 패커블 보스턴백 1개","여행","패커블"],
+  ["10537709820","★[비밀링크] 브랜든 이불 압축 파우치 & 여행 압축 파우치 모음전★","리빙","이불"],
+  ["9641765731","브랜든 폴더블 토트백 1개 나일론 토트백","여행","패커블"],
+  ["10392621311","브랜든 여행 압축 파우치 워시백 세트 S+S+M+M+L+워시백","여행","여행"],
+  ["10095805778","브랜든 워시백 1개 세면 도구 정리","여행","기타"],
+  ["11993202310","브랜든 여행 압축 파우치 라이트 S+M+L+L","여행","라이트"],
+  ["12673925139","세이프 플러스 라인 백팩+크로스백","여행","플러스"],
+  ["11890942193","브랜든 멀티 패커블 백팩 1개","여행","패커블"],
+  ["10239847463","[브랜든] 부피순삭 부피순삭 2세대 이불압축파우치 XL 4개 - 이불압축보관","리빙","이불"],
+  ["10828876986","브랜든 뷰티 파우치 1개 화장품 파우치","여행","기타"],
+  ["10392582895","브랜든 여행 압축 파우치 세트 S+S+M+M+L+토트백 캐리어 정리백","여행","여행"],
+  ["11993265658","여행 압축 파우치 라이트 S+M+M+L+워시백","여행","라이트"],
+  ["10567334930","브랜든 세이프 세트 바디백 S+월렛백 도난방지 가방","여행","세이프"],
+  ["10182464104","브랜든 여행 압축 파우치 세트 S+M+워시백 캐리어 정리백","여행","여행"],
+  ["10095791141","브랜든 여행 압축 파우치 단품 M 1개","여행","여행"],
+  ["12017403663","슈즈 파우치 1개","여행","기타"],
+  ["11979833961","브랜든 여행 압축 파우치 라이트 S+M+L","여행","라이트"],
+  ["11890966729","브랜든 멀티 패커블 보스턴백 2개","여행","패커블"],
+  ["10088702414","브랜든 여행 압축 파우치 세트 S+S+M+L 캐리어 정리백","여행","여행"],
+  ["10126313844","브랜든 여행 압축 파우치 세트 캐리어 정리백","여행","여행"],
+  ["10403338629","브랜든 여행 압축 파우치 세트 S+L","여행","여행"],
+  ["10088707141","브랜든 여행 압축 파우치 세트 S+S+M 캐리어 정리백","여행","여행"],
+  ["11993207986","브랜든 여행 압축 파우치 라이트 S+S+M","여행","라이트"],
+  ["9631359085","브랜든 폴더블 토트백 2개 나일론 토트백","여행","패커블"],
+  ["11993234133","브랜든 여행 압축 파우치 라이트 S","여행","라이트"],
+  ["11993221237","브랜든 여행 압축 파우치 라이트 L","여행","라이트"],
+  ["12023312987","슈즈 파우치 2개","여행","기타"],
+  ["10775441936","브랜든 미니 큐브 파우치 키링 파우치","여행","기타"],
+  ["12017560150","백인백 멀티 파우치 1개","여행","기타"],
+  ["10095788280","브랜든 여행 압축 파우치 단품 S 1개","여행","여행"]
+];
+
+// ══════════════════════════════════════════════════════════════
+// PRODUCT TAB
+// ══════════════════════════════════════════════════════════════
+const MAJ_OPTS=['','여행','리빙'];
+const MIN_OPTS={
+  '':[''],
+  '여행':['','세이프','데이즈','플러스','여행','라이트','패커블','기타','미분류'],
+  '리빙':['','이불','와이드','아우터','오거나이저','기타','미분류']
+};
+const PROD_MAP={};
+PROD_LIST.forEach(r=>PROD_MAP[r[0]]=r);
+
+const SAVE_KEY='naver_cat_v3';
+let catAssigns={};
+try{ catAssigns=JSON.parse(localStorage.getItem(SAVE_KEY)||'{}'); }catch(e){}
+
+let prodFilter='전체';
+
+function getPMaj(code){ return catAssigns[code]!==undefined?catAssigns[code].maj:(PROD_MAP[code]?PROD_MAP[code][2]:''); }
+function getPMin(code){ return catAssigns[code]!==undefined?catAssigns[code].min:(PROD_MAP[code]?PROD_MAP[code][3]:''); }
+
+function setPFilter(btn,v){
+  prodFilter=v;
+  document.querySelectorAll('#pChips .chip').forEach(c=>c.classList.remove('active'));
+  btn.classList.add('active');
+  renderProdTable();
+}
+
+function renderProdTable(){
+  const q=(document.getElementById('prodSearch').value||'').toLowerCase();
+  let rows=PROD_LIST;
+  if(prodFilter==='미분류') rows=rows.filter(r=>!getPMaj(r[0]));
+  else if(prodFilter!=='전체') rows=rows.filter(r=>getPMaj(r[0])===prodFilter);
+  if(q) rows=rows.filter(r=>r[1].toLowerCase().includes(q)||r[0].includes(q));
+  document.getElementById('pResult').innerHTML='<strong>'+rows.length+'</strong>개 상품';
+  const tbody=document.getElementById('prodTbody');
+  tbody.innerHTML=rows.map((r,i)=>{
+    const code=r[0];
+    const maj=getPMaj(code), minn=getPMin(code);
+    const majOpts=MAJ_OPTS.map(o=>`<option value="${o}"${o===maj?' selected':''}>${o||'—'}</option>`).join('');
+    const minArr=MIN_OPTS[maj]||[''];
+    const minOpts=minArr.map(o=>`<option value="${o}"${o===minn?' selected':''}>${o||'—'}</option>`).join('');
+    return `<tr>
+      <td class="col-num" style="color:var(--text-3)">${i+1}</td>
+      <td class="col-code" style="font-family:monospace;font-size:11px;color:var(--text-3)">${code}</td>
+      <td>${r[1]}</td>
+      <td class="col-cat"><select class="prod-sel" onchange="onMajChg('${code}',this)">${majOpts}</select></td>
+      <td class="col-sub"><select class="prod-sel" id="sub_${code}" onchange="onMinChg('${code}',this)">${minOpts}</select></td>
+    </tr>`;
+  }).join('');
+}
+
+function onMajChg(code,sel){
+  const maj=sel.value;
+  if(!catAssigns[code]) catAssigns[code]={maj:getPMaj(code),min:getPMin(code)};
+  catAssigns[code].maj=maj; catAssigns[code].min='';
+  const sub=document.getElementById('sub_'+code);
+  if(sub){ const arr=MIN_OPTS[maj]||['']; sub.innerHTML=arr.map(o=>`<option value="${o}">${o||'—'}</option>`).join(''); }
+}
+
+function onMinChg(code,sel){
+  if(!catAssigns[code]) catAssigns[code]={maj:getPMaj(code),min:getPMin(code)};
+  catAssigns[code].min=sel.value;
+}
+
+function saveCats(){
+  localStorage.setItem(SAVE_KEY,JSON.stringify(catAssigns));
+  const btn=document.getElementById('saveCatBtn');
+  btn.textContent='저장 완료 ✓'; btn.style.background='var(--good)';
+  setTimeout(()=>{ btn.textContent='저장'; btn.style.background=''; },2000);
+}
+
+renderProdTable();
+</script>

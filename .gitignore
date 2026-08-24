@@ -1,0 +1,11 @@
+# 엑셀 매출 데이터 (개인 정보 포함 — GitHub에 올리지 않음)
+*.xlsx
+*.xls
+
+# Python 캐시
+__pycache__/
+*.pyc
+
+# 임시 파일
+*.tmp
+*.log
