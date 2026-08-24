@@ -147,10 +147,19 @@ try:
 except FileNotFoundError:
     print(f'ERROR: {DASHBOARD} 파일이 없습니다. 같은 폴더에서 실행해주세요.'); exit(1)
 
+# 신규 상품 감지: 기존 PROD_LIST 코드 추출
+old_codes = set(re.findall(r'\["(\d+)"', html[html.find('const PROD_LIST=['):html.find('\n];', html.find('const PROD_LIST=['))]))
+new_codes  = [code for code, _ in sorted(prod_map.items(), key=lambda x: x[1]['s'], reverse=True)]
+added      = [c for c in new_codes if c not in old_codes]
+
+# NEW_PRODS JS 생성
+new_prods_js = 'const NEW_PRODS=' + json.dumps(added, ensure_ascii=False) + ';'
+
 html = replace_block(html, 'const ALL = [',     '\n];', all_js)
 html = replace_block(html, 'const TOP_S = {',   '\n};', top_s_js)
 html = replace_block(html, 'const TOP_O = {',   '\n};', top_o_js)
 html = replace_block(html, 'const PEAKS = ',    ';',    peaks_js)
+html = replace_block(html, 'const NEW_PRODS=',  ';',    new_prods_js)
 html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
 
 # 타이틀 날짜 범위 업데이트 (예: 2026.07–08)
@@ -172,3 +181,9 @@ with open(INDEX, 'w', encoding='utf-8') as f:
 
 print(f'\n✓ {DASHBOARD} + {INDEX} 업데이트 완료')
 print(f'  일별: {len(rows)}일  |  피크: {len(peaks)}일  |  상품: {len(pl_rows)}개')
+if added:
+    print(f'\n  ★ 신규 상품 {len(added)}개 — 대시보드에서 카테고리 지정 필요:')
+    for c in added:
+        print(f'    - [{c}] {prod_map[c]["name"]}')
+else:
+    print(f'  신규 상품 없음')

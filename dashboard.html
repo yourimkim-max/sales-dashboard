@@ -53,10 +53,22 @@
   /* Main tabs */
   .main-tabs{background:var(--surface);border-bottom:1px solid var(--border);
     padding:0 24px;display:flex;position:sticky;top:44px;z-index:100}
-  .mtab{padding:10px 18px;border:none;background:transparent;color:var(--text-3);
+  .mtab{padding:10px 18px;border:none;background:transparent;color:var(--text-3);position:relative;
     font-size:13px;font-weight:600;cursor:pointer;
     border-bottom:2px solid transparent;transition:all .15s}
   .mtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+  .mtab-badge{position:absolute;top:6px;right:4px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;line-height:1;padding:2px 5px;border-radius:10px;pointer-events:none}
+  .new-prods-banner{margin:0 0 10px;padding:10px 14px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;color:#991B1B;font-size:13px;display:flex;align-items:flex-start;gap:10px}
+  .new-prods-banner b{white-space:nowrap}
+  .new-prods-banner ul{margin:4px 0 0;padding-left:16px;font-size:12px;color:#7F1D1D}
+  @media(prefers-color-scheme:dark){
+    .new-prods-banner{background:#2D1515;border-color:#7F1D1D;color:#FCA5A5}
+    .new-prods-banner ul{color:#FCA5A5}
+  }
+  :root[data-theme="dark"] .new-prods-banner{background:#2D1515;border-color:#7F1D1D;color:#FCA5A5}
+  :root[data-theme="dark"] .new-prods-banner ul{color:#FCA5A5}
+  :root[data-theme="light"] .new-prods-banner{background:#FEF2F2;border-color:#FECACA;color:#991B1B}
+  :root[data-theme="light"] .new-prods-banner ul{color:#7F1D1D}
 
   /* Panes */
   .pane{display:none}
@@ -351,6 +363,7 @@
 
 <!-- ════ PRODUCT PANE ════ -->
 <div id="pane-category" class="pane">
+  <div id="newProdsBanner" style="display:none" class="new-prods-banner"></div>
   <div class="filter-bar" style="flex-wrap:wrap;gap:6px 8px">
     <span class="flabel">필터</span>
     <div class="chips" id="pChips" style="flex-wrap:wrap;gap:4px">
@@ -454,6 +467,7 @@ const TOP_O = {
 };
 
 const PEAKS = {"07/05":1,"07/13":1,"07/20":1,"08/10":1};
+const NEW_PRODS=[];
 
 // ══════════════════════════════════════════════════════════════
 // SHARED UTILS
@@ -1153,10 +1167,37 @@ function onMinChg(code,sel){
 
 function saveCats(){
   localStorage.setItem(SAVE_KEY,JSON.stringify(catAssigns));
+  // 저장 시 신규 알림 숨기기
+  localStorage.setItem('acked_prods', JSON.stringify(NEW_PRODS));
+  document.getElementById('newProdsBanner').style.display='none';
+  const tab=document.getElementById('mtab-category');
+  const badge=tab.querySelector('.mtab-badge');
+  if(badge) badge.remove();
   const btn=document.getElementById('saveCatBtn');
   btn.textContent='저장 완료 ✓'; btn.style.background='var(--good)';
   setTimeout(()=>{ btn.textContent='저장'; btn.style.background=''; },2000);
 }
 
+function initNewProds(){
+  if(!NEW_PRODS.length) return;
+  const acked=JSON.parse(localStorage.getItem('acked_prods')||'[]');
+  const unacked=NEW_PRODS.filter(c=>!acked.includes(c));
+  if(!unacked.length) return;
+  // 탭 배지
+  const tab=document.getElementById('mtab-category');
+  if(!tab.querySelector('.mtab-badge')){
+    const badge=document.createElement('span');
+    badge.className='mtab-badge';
+    badge.textContent=unacked.length;
+    tab.appendChild(badge);
+  }
+  // 배너
+  const names=unacked.map(c=>PROD_MAP[c]?PROD_MAP[c][1]:c);
+  const banner=document.getElementById('newProdsBanner');
+  banner.innerHTML=`<b>신규 상품 ${unacked.length}개</b><div>카테고리 지정 후 저장해주세요<ul>${names.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
+  banner.style.display='flex';
+}
+
 renderProdTable();
+initNewProds();
 </script>
