@@ -58,6 +58,10 @@
     border-bottom:2px solid transparent;transition:all .15s}
   .mtab.active{color:var(--accent);border-bottom-color:var(--accent)}
   .mtab-badge{position:absolute;top:6px;right:4px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;line-height:1;padding:2px 5px;border-radius:10px;pointer-events:none}
+  .line-tab-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .line-tabs{display:flex;gap:4px}
+  .ltab{padding:4px 12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-3);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
+  .ltab.active{background:var(--accent);border-color:var(--accent);color:#fff}
   .cat-donut-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
   .cat-donut-col canvas{display:block;width:100%;height:200px}
   .cat-sub-title{font-size:12px;font-weight:600;color:var(--text-3);text-align:center;letter-spacing:.04em;text-transform:uppercase;margin-bottom:8px}
@@ -124,8 +128,9 @@
   .container{max-width:1140px;margin:0 auto;padding:18px 20px}
 
   /* KPI */
-  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
-  @media(max-width:700px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
+  .kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:11px;margin-bottom:16px}
+  @media(max-width:860px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+  @media(max-width:560px){.kpi-grid{grid-template-columns:repeat(2,1fr)}}
   .kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
   .kpi-label{font-size:11px;font-weight:600;color:var(--text-3);letter-spacing:.4px;margin-bottom:3px}
   .kpi-value{font-size:22px;font-weight:800;letter-spacing:-.8px;font-variant-numeric:tabular-nums}
@@ -265,30 +270,15 @@
       <div class="kpi"><div class="kpi-label">총 주문건수</div>
         <div class="kpi-value" id="a-ko">37,358건</div>
         <div class="kpi-sub" id="a-ko2">일 평균 691건</div></div>
+      <div class="kpi"><div class="kpi-label">방문수</div>
+        <div class="kpi-value" id="a-kv">891,547</div>
+        <div class="kpi-sub" id="a-kv2">일 평균 16,510명</div></div>
       <div class="kpi"><div class="kpi-label">구매 전환율</div>
         <div class="kpi-value c-good" id="a-kc">4.2%</div>
-        <div class="kpi-sub" id="a-kv">방문 891,547명</div></div>
+        <div class="kpi-sub" id="a-kc2">주문/방문</div></div>
       <div class="kpi"><div class="kpi-label">환불율</div>
         <div class="kpi-value c-warn" id="a-kr">10.2%</div>
         <div class="kpi-sub" id="a-kr2">환불 3,815건</div></div>
-    </div>
-    <div class="chart-card">
-      <h2>일별 순매출 추이</h2>
-      <div class="sub" id="aLineSub">일별 순매출</div>
-      <div class="peak-leg" id="aPeakLeg"></div>
-      <canvas id="aLineChart"></canvas>
-    </div>
-    <div class="bar-grid">
-      <div class="chart-card">
-        <h2>TOP 10 · 순매출 기준</h2>
-        <div class="sub" id="aSalesSub">기간 내 순매출 상위 10개</div>
-        <canvas id="aSalesChart"></canvas>
-      </div>
-      <div class="chart-card">
-        <h2>TOP 10 · 결제수 기준</h2>
-        <div class="sub" id="aOrdersSub">기간 내 결제수 상위 10개</div>
-        <canvas id="aOrdersChart"></canvas>
-      </div>
     </div>
     <div class="chart-card">
       <h2>카테고리별 매출 비중</h2>
@@ -304,6 +294,30 @@
           <canvas id="minDonut"></canvas>
           <div class="donut-legend" id="minLegend"></div>
         </div>
+      </div>
+    </div>
+    <div class="chart-card">
+      <div class="line-tab-bar">
+        <h2 style="margin:0">일별 추이</h2>
+        <div class="line-tabs">
+          <button class="ltab active" id="ltab-sales"  onclick="setLineTab('sales')">순매출</button>
+          <button class="ltab"        id="ltab-orders" onclick="setLineTab('orders')">결제수</button>
+        </div>
+      </div>
+      <div class="sub" id="aLineSub">일별 순매출</div>
+      <div class="peak-leg" id="aPeakLeg"></div>
+      <canvas id="aLineChart"></canvas>
+    </div>
+    <div class="bar-grid">
+      <div class="chart-card">
+        <h2>TOP 10 · 순매출 기준</h2>
+        <div class="sub" id="aSalesSub">기간 내 순매출 상위 10개</div>
+        <canvas id="aSalesChart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h2>TOP 10 · 결제수 기준</h2>
+        <div class="sub" id="aOrdersSub">기간 내 결제수 상위 10개</div>
+        <canvas id="aOrdersChart"></canvas>
       </div>
     </div>
   </div>
@@ -586,8 +600,10 @@ function updateAnalysis(){
   document.getElementById('a-ks2').textContent=S.toLocaleString()+'원';
   document.getElementById('a-ko').textContent=O.toLocaleString()+'건';
   document.getElementById('a-ko2').textContent='일 평균 '+Math.round(O/n).toLocaleString()+'건';
+  document.getElementById('a-kv').textContent=V.toLocaleString();
+  document.getElementById('a-kv2').textContent='일 평균 '+Math.round(V/n).toLocaleString()+'명';
   document.getElementById('a-kc').textContent=cvr+'%';
-  document.getElementById('a-kv').textContent='방문 '+V.toLocaleString()+'명';
+  document.getElementById('a-kc2').textContent='주문/방문';
   document.getElementById('a-kr').textContent=ref+'%';
   document.getElementById('a-kr2').textContent='환불 '+R.toLocaleString()+'건';
   document.getElementById('aResult').innerHTML='총 '+n+'일 · <strong>'+fmtS(S)+'</strong>';
@@ -607,19 +623,34 @@ function updateAnalysis(){
 }
 
 // ── Analysis charts ────────────────────────────────────────────
-let aLineState={};
+let aLineState={}, aLineMode='sales';
+
+function setLineTab(mode){
+  aLineMode=mode;
+  document.getElementById('ltab-sales').classList.toggle('active', mode==='sales');
+  document.getElementById('ltab-orders').classList.toggle('active', mode==='orders');
+  const sub=document.getElementById('aLineSub');
+  sub.textContent=mode==='sales'?'일별 순매출':'일별 결제수';
+  drawAnalysis();
+}
+
 function drawAnalysis(){
-  drawLineChart('aLineChart', [aData], [css('--cline')], [css('--cfill')], aLineState, e=>{
+  const isSales=aLineMode==='sales';
+  // 결제수 모드: aData를 [label, orders] 형태로 변환
+  const lineData=isSales ? aData : aData.map(d=>[d[0],d[2]]);
+  const lineColor=isSales?'--cline':'--cmp';
+  const lineFill=isSales?'--cfill':'--cfill2';
+  drawLineChart('aLineChart', [lineData], [css(lineColor)], [css(lineFill)||css(lineColor)+'22'], aLineState, e=>{
     if(!aLineState.n) return;
     const {pad,cW,n,data}=aLineState, rect=document.getElementById('aLineChart').getBoundingClientRect();
     const mx=e.clientX-rect.left;
     if(mx<pad.left||mx>pad.left+cW){hideTT();return;}
     const idx=Math.max(0,Math.min(n-1,Math.round((mx-pad.left)/cW*(n-1))));
-    const d=data[0][idx];
-    document.getElementById('tt-date').textContent='2026.'+d[0].replace('/','.') ;
-    document.getElementById('tt-r1').className='tt-row'; document.getElementById('tt-l1').textContent='순매출'; document.getElementById('tt-v1').textContent=fmtF(d[1]);
-    document.getElementById('tt-r2').style.display='flex'; document.getElementById('tt-l2').textContent='주문'; document.getElementById('tt-v2').textContent=d[2].toLocaleString()+'건';
-    document.getElementById('tt-r3').style.display='flex'; document.getElementById('tt-l3').textContent='방문'; document.getElementById('tt-v3').textContent=d[4].toLocaleString()+'명';
+    const orig=aData[idx];
+    document.getElementById('tt-date').textContent='2026.'+orig[0].replace('/','.');
+    document.getElementById('tt-r1').className='tt-row'; document.getElementById('tt-l1').textContent='순매출'; document.getElementById('tt-v1').textContent=fmtF(orig[1]);
+    document.getElementById('tt-r2').style.display='flex'; document.getElementById('tt-l2').textContent='주문'; document.getElementById('tt-v2').textContent=orig[2].toLocaleString()+'건';
+    document.getElementById('tt-r3').style.display='flex'; document.getElementById('tt-l3').textContent='방문'; document.getElementById('tt-v3').textContent=orig[4].toLocaleString()+'명';
     showTT(e);
   });
   drawBarChart('aSalesChart', aS10, '--bs1','--bs2', v=>fmtF(v), 'barA-S');
