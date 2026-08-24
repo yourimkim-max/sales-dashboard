@@ -612,9 +612,10 @@ function updateAnalysis(){
     document.getElementById('hdrRange').textContent=(f===t2?f:f+' – '+t2)+' · '+n+'일';
   }
   // peak legend
-  const vis=aData.filter(d=>PEAKS[d[0]]).sort((a,b)=>b[1]-a[1]);
+  const isSales2=aLineMode==='sales';
+  const vis=aData.filter(d=>PEAKS[d[0]]).sort((a,b)=>isSales2?b[1]-a[1]:b[2]-a[2]);
   document.getElementById('aPeakLeg').innerHTML=vis.map((d,i)=>
-    `<span class="pbadge${i===0?' top':''}">${d[0]} ${fmtS(d[1])}</span>`).join('');
+    `<span class="pbadge${i===0?' top':''}">${d[0]} ${isSales2?fmtS(d[1]):d[2].toLocaleString()+'건'}</span>`).join('');
   // bar sub
   const lbl=aData.length?aData[0][0]+(aData.length>1?' – '+aData[aData.length-1][0]:''):'';
   document.getElementById('aSalesSub').textContent=lbl+' 순매출 상위 10개';
