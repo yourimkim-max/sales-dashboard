@@ -414,6 +414,17 @@ html = upd_input(html, 'c1To',   p1_to,      start_date, end_date)
 html = upd_input(html, 'c2From', p2_from,    start_date, end_date)
 html = upd_input(html, 'c2To',   p2_to,      start_date, end_date)
 
+# advcmp 기간 기본값: visit 데이터 기준 마지막 30일 vs 그 이전 30일
+if adv_months:
+    ac1_to   = adv_end
+    ac1_from = max(adv_start, (datetime.strptime(adv_end, '%Y-%m-%d') - timedelta(days=29)).strftime('%Y-%m-%d'))
+    ac2_to   = (datetime.strptime(ac1_from, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d')
+    ac2_from = max(adv_start, (datetime.strptime(ac2_to, '%Y-%m-%d') - timedelta(days=29)).strftime('%Y-%m-%d'))
+    html = upd_input(html, 'ac1From', ac1_from, adv_start, adv_end)
+    html = upd_input(html, 'ac1To',   ac1_to,   adv_start, adv_end)
+    html = upd_input(html, 'ac2From', ac2_from, adv_start, adv_end)
+    html = upd_input(html, 'ac2To',   ac2_to,   adv_start, adv_end)
+
 # 타이틀 날짜 범위 업데이트 (예: 2026.07–08)
 m1, m2 = start_date[5:7], end_date[5:7]
 new_range = f'{yr}.{m1}–{m2}' if m1 != m2 else f'{yr}.{m1}'

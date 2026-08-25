@@ -310,6 +310,7 @@
     </div>
     <div class="nav-children">
       <button class="nav-item" id="mtab-advert" onclick="switchMain('advert')">분석</button>
+      <button class="nav-item" id="mtab-advcmp" onclick="switchMain('advcmp')">비교</button>
     </div>
   </div>
 </nav>
@@ -654,6 +655,82 @@
     </div>
   </div>
 </div><!-- /pane-advert -->
+
+<!-- ════ ADVERT COMPARE PANE ════ -->
+<div id="pane-advcmp" class="pane">
+  <div class="cmp-bar">
+    <div class="period-setter">
+      <span class="pdot p1"></span>
+      <span class="plabel p1">기간 1</span>
+      <input type="date" id="ac1From" value="2026-07-26" min="2026-01-01" max="2026-08-24">
+      <span class="dsep">–</span>
+      <input type="date" id="ac1To" value="2026-08-24" min="2026-01-01" max="2026-08-24">
+    </div>
+    <div class="cmp-divider"></div>
+    <div class="period-setter">
+      <span class="pdot p2"></span>
+      <span class="plabel p2">기간 2</span>
+      <input type="date" id="ac2From" value="2026-06-26" min="2026-01-01" max="2026-08-24">
+      <span class="dsep">–</span>
+      <input type="date" id="ac2To" value="2026-07-25" min="2026-01-01" max="2026-08-24">
+    </div>
+    <button class="apply-btn" onclick="applyAdvCmp()">비교 적용</button>
+  </div>
+  <div class="container">
+    <!-- KPI -->
+    <div class="ckpi-grid" style="grid-template-columns:repeat(4,1fr)" id="acmpKpiGrid"></div>
+    <!-- 채널별 매출 비중 도넛 비교 -->
+    <div class="chart-card">
+      <h2>채널별 매출 비중</h2>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="cat-sub-title" id="acmp-p1-lbl" style="margin-bottom:12px">기간 1</div>
+          <div class="adv-donut-wrap">
+            <div class="adv-donut-canvas-col"><canvas id="acmpDonut1"></canvas></div>
+            <div class="adv-donut-leg-col donut-legend" id="acmpLeg1"></div>
+          </div>
+        </div>
+        <div>
+          <div class="cat-sub-title" id="acmp-p2-lbl" style="margin-bottom:12px">기간 2</div>
+          <div class="adv-donut-wrap">
+            <div class="adv-donut-canvas-col"><canvas id="acmpDonut2"></canvas></div>
+            <div class="adv-donut-leg-col donut-legend" id="acmpLeg2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- 채널별 방문 현황 비교 -->
+    <div class="chart-card">
+      <h2>채널별 방문 현황 비교</h2>
+      <div class="adv-table-wrap">
+        <table class="adv-tbl" id="acmpChTbl">
+          <thead>
+            <tr>
+              <th rowspan="2">채널</th>
+              <th class="num" colspan="2">방문수</th>
+              <th class="num" colspan="2">결제건수</th>
+              <th class="num" colspan="2">전환율</th>
+              <th class="num" colspan="2">매출기여</th>
+              <th class="num">매출 증감</th>
+            </tr>
+            <tr>
+              <th class="num" style="font-size:10px;color:var(--accent)">기간1</th>
+              <th class="num" style="font-size:10px;color:var(--cmp)">기간2</th>
+              <th class="num" style="font-size:10px;color:var(--accent)">기간1</th>
+              <th class="num" style="font-size:10px;color:var(--cmp)">기간2</th>
+              <th class="num" style="font-size:10px;color:var(--accent)">기간1</th>
+              <th class="num" style="font-size:10px;color:var(--cmp)">기간2</th>
+              <th class="num" style="font-size:10px;color:var(--accent)">기간1</th>
+              <th class="num" style="font-size:10px;color:var(--cmp)">기간2</th>
+              <th class="num" style="font-size:10px;color:var(--text-3)">%</th>
+            </tr>
+          </thead>
+          <tbody id="acmpChBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div><!-- /pane-advcmp -->
 
 <!-- 광고 탭 채널별 매출 툴팁 -->
 <div id="adv-tt" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;z-index:300;pointer-events:none;min-width:190px;box-shadow:0 4px 18px rgba(0,0,0,.13)">
@@ -1264,6 +1341,7 @@ function redrawActive(){
   if(activeMain==='analysis') drawAnalysis();
   else if(activeMain==='compare') drawCompare();
   else if(activeMain==='advert') requestAnimationFrame(drawAdvert);
+  else if(activeMain==='advcmp') requestAnimationFrame(updateAdvCmp);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -3040,8 +3118,186 @@ function hideAdvTT(){
   if(tt) tt.style.display='none';
 }
 
+// ══════════════════════════════════════════════════════════════
+// ADVERT COMPARE TAB
+// ══════════════════════════════════════════════════════════════
+let acmpData1=[], acmpData2=[];
+
+function applyAdvCmp(){
+  const f1=document.getElementById('ac1From').value, t1=document.getElementById('ac1To').value;
+  const f2=document.getElementById('ac2From').value, t2=document.getElementById('ac2To').value;
+  const fl1=f1.slice(5).replace('-','/'), tl1=t1.slice(5).replace('-','/');
+  const fl2=f2.slice(5).replace('-','/'), tl2=t2.slice(5).replace('-','/');
+  acmpData1=VISIT_DAILY.filter(d=>d[0]>=fl1&&d[0]<=tl1);
+  acmpData2=VISIT_DAILY.filter(d=>d[0]>=fl2&&d[0]<=tl2);
+  updateAdvCmp();
+}
+
+function acmpLabel(data){
+  if(!data.length) return '–';
+  const f=data[0][0], t=data[data.length-1][0];
+  return f===t?f:f+' – '+t;
+}
+
+function getAdvTotals(data){
+  let v=0,o=0,s=0;
+  data.forEach(row=>{
+    ADV_CHS.forEach((_,ci)=>{ v+=row[1+ci*3]||0; o+=row[2+ci*3]||0; s+=row[3+ci*3]||0; });
+  });
+  return {v,o,s};
+}
+
+function getAdvChSums(data){
+  const sums=ADV_CHS.map(()=>({v:0,o:0,s:0}));
+  data.forEach(row=>{
+    ADV_CHS.forEach((_,ci)=>{ sums[ci].v+=row[1+ci*3]||0; sums[ci].o+=row[2+ci*3]||0; sums[ci].s+=row[3+ci*3]||0; });
+  });
+  return sums;
+}
+
+function acmpDelta(v1,v2,flip){
+  if(!v1&&!v2) return '<span class="ckpi-delta nu">–</span>';
+  if(!v1) return '<span class="ckpi-delta nu">신규</span>';
+  const d=((v2-v1)/Math.abs(v1)*100).toFixed(1);
+  const isUp=(+d>0&&!flip)||(+d<0&&flip);
+  return `<span class="ckpi-delta ${isUp?'up':'dn'}">${+d>0?'+':''}${d}%</span>`;
+}
+
+function updateAdvCmp(){
+  const t1=getAdvTotals(acmpData1), t2=getAdvTotals(acmpData2);
+  const labels1=new Set(acmpData1.map(r=>r[0])), labels2=new Set(acmpData2.map(r=>r[0]));
+  let sal1={S:0,O:0}, sal2={S:0,O:0};
+  ALL.forEach(row=>{
+    if(labels1.has(row[0])){ sal1.S+=row[1]||0; sal1.O+=row[2]||0; }
+    if(labels2.has(row[0])){ sal2.S+=row[1]||0; sal2.O+=row[2]||0; }
+  });
+  const cvr1=t1.v?(t1.o/t1.v*100).toFixed(1):'0.0';
+  const cvr2=t2.v?(t2.o/t2.v*100).toFixed(1):'0.0';
+  const pctS1=sal1.S?(t1.s/sal1.S*100).toFixed(1):'–';
+  const pctS2=sal2.S?(t2.s/sal2.S*100).toFixed(1):'–';
+
+  const lb1=acmpLabel(acmpData1), lb2=acmpLabel(acmpData2);
+  const lbEl1=document.getElementById('acmp-p1-lbl'), lbEl2=document.getElementById('acmp-p2-lbl');
+  if(lbEl1) lbEl1.textContent='기간 1 · '+lb1;
+  if(lbEl2) lbEl2.textContent='기간 2 · '+lb2;
+
+  const cards=[
+    {label:'총 매출기여', v1:t1.s.toLocaleString(), v2:t2.s.toLocaleString(), delta:acmpDelta(t1.s,t2.s,false),
+     sub1:`순매출 대비 ${pctS1}%`, sub2:`순매출 대비 ${pctS2}%`},
+    {label:'총 결제건수', v1:t1.o.toLocaleString()+'건', v2:t2.o.toLocaleString()+'건', delta:acmpDelta(t1.o,t2.o,false), sub1:'', sub2:''},
+    {label:'총 방문수',   v1:t1.v.toLocaleString(), v2:t2.v.toLocaleString(), delta:acmpDelta(t1.v,t2.v,false), sub1:'', sub2:''},
+    {label:'구매 전환율', v1:cvr1+'%', v2:cvr2+'%', delta:acmpDelta(+cvr1,+cvr2,false), sub1:'결제/방문', sub2:'결제/방문'},
+  ];
+  const grid=document.getElementById('acmpKpiGrid');
+  if(grid) grid.innerHTML=cards.map(c=>`
+    <div class="ckpi">
+      <div class="ckpi-label">${c.label}</div>
+      <div class="ckpi-row">
+        <span class="ckpi-dot p1"></span>
+        <div class="ckpi-info">
+          <span class="ckpi-val">${c.v1}</span>
+          <span class="ckpi-meta">${lb1}</span>
+          ${c.sub1?`<span class="ckpi-meta">${c.sub1}</span>`:''}
+        </div>
+      </div>
+      <div class="ckpi-row" style="margin-top:6px">
+        <span class="ckpi-dot p2"></span>
+        <div class="ckpi-info">
+          <span class="ckpi-val">${c.v2}</span>
+          <span class="ckpi-meta">${lb2}</span>
+          ${c.sub2?`<span class="ckpi-meta">${c.sub2}</span>`:''}
+        </div>
+        ${c.delta}
+      </div>
+    </div>`).join('');
+
+  drawAdvCmpDonuts(lb1,lb2);
+  drawAdvCmpTable();
+}
+
+function drawAdvCmpDonutSingle(canvasId,legId,data){
+  const canvas=document.getElementById(canvasId);
+  if(!canvas) return;
+  const sums=ADV_CHS.map(()=>({s:0}));
+  data.forEach(row=>{ ADV_CHS.forEach((_,ci)=>{ sums[ci].s+=row[3+ci*3]||0; }); });
+  const segs=ADV_CHS.map((ch,ci)=>({label:ch,value:sums[ci].s,color:ADV_COLS[ci]}))
+    .filter(s=>s.value>0).sort((a,b)=>b.value-a.value);
+  const dpr=window.devicePixelRatio||1;
+  canvas.style.width='';
+  const W=canvas.offsetWidth||200, H=200;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const total=segs.reduce((s,g)=>s+g.value,0);
+  ctx.clearRect(0,0,W,H);
+  if(!total){
+    ctx.fillStyle=css('--text-3'); ctx.font='13px system-ui'; ctx.textAlign='center';
+    ctx.fillText('데이터 없음',W/2,H/2); return;
+  }
+  const cx=W/2,cy=H/2,outerR=Math.min(cx,cy)-6,innerR=outerR*0.56,GAP=0.014;
+  let ang=-Math.PI/2;
+  segs.forEach(seg=>{
+    const sw=(seg.value/total)*(Math.PI*2)-GAP;
+    if(sw>0){
+      ctx.beginPath(); ctx.arc(cx,cy,outerR,ang,ang+sw);
+      ctx.arc(cx,cy,innerR,ang+sw,ang,true); ctx.closePath();
+      ctx.fillStyle=seg.color; ctx.fill();
+    }
+    ang+=sw+GAP;
+  });
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=css('--text-1');
+  ctx.font=`bold ${Math.round(outerR*.26)}px system-ui`;
+  ctx.fillText(total.toLocaleString(),cx,cy-10);
+  ctx.font=`${Math.round(outerR*.16)}px system-ui`;
+  ctx.fillStyle=css('--text-3');
+  ctx.fillText('매출기여',cx,cy+12);
+  const leg=document.getElementById(legId);
+  if(leg) leg.innerHTML=segs.map(seg=>{
+    const pct=(seg.value/total*100).toFixed(1);
+    return `<div class="dl-row"><span class="dl-dot" style="background:${seg.color}"></span><span class="dl-label">${seg.label}</span><span class="dl-pct">${pct}%</span><span class="dl-val">${seg.value.toLocaleString()}</span></div>`;
+  }).join('');
+}
+
+function drawAdvCmpDonuts(lb1,lb2){
+  drawAdvCmpDonutSingle('acmpDonut1','acmpLeg1',acmpData1);
+  drawAdvCmpDonutSingle('acmpDonut2','acmpLeg2',acmpData2);
+}
+
+function drawAdvCmpTable(){
+  const body=document.getElementById('acmpChBody');
+  if(!body) return;
+  const sums1=getAdvChSums(acmpData1), sums2=getAdvChSums(acmpData2);
+  const totalS1=sums1.reduce((t,c)=>t+c.s,0), totalS2=sums2.reduce((t,c)=>t+c.s,0);
+  const sortedCIs=ADV_CHS.map((_,ci)=>ci)
+    .sort((a,b)=>(sums1[b].s+sums2[b].s)-(sums1[a].s+sums2[a].s));
+  body.innerHTML=sortedCIs.map(ci=>{
+    const ch=ADV_CHS[ci];
+    const {v:v1,o:o1,s:s1}=sums1[ci], {v:v2,o:o2,s:s2}=sums2[ci];
+    const cvr1=v1?(o1/v1*100).toFixed(1):'0.0', cvr2=v2?(o2/v2*100).toFixed(1):'0.0';
+    const sPct1=totalS1?s1/totalS1*100:0, sPct2=totalS2?s2/totalS2*100:0;
+    const deltaS=s1?((s2-s1)/Math.abs(s1)*100):null;
+    const deltaCls=deltaS===null?'nu':deltaS>0?'up':'dn';
+    const deltaTxt=deltaS===null?'–':(deltaS>0?'+':'')+deltaS.toFixed(1)+'%';
+    return `<tr class="adv-main-row">
+      <td><span class="adv-ch-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</td>
+      <td class="num">${v1.toLocaleString()}</td>
+      <td class="num">${v2.toLocaleString()}</td>
+      <td class="num">${o1.toLocaleString()}</td>
+      <td class="num">${o2.toLocaleString()}</td>
+      <td class="num">${cvr1}%</td>
+      <td class="num">${cvr2}%</td>
+      <td class="num">${s1.toLocaleString()}</td>
+      <td class="num">${s2.toLocaleString()}</td>
+      <td class="num"><span class="ckpi-delta ${deltaCls}">${deltaTxt}</span></td>
+    </tr>`;
+  }).join('');
+}
+
 updateAnalysis();
 updateCompare();
+applyAdvCmp();
 renderProdTable();
 initNewProds();
 </script>
