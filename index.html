@@ -596,13 +596,22 @@
     <span class="fresult" id="advResult"></span>
   </div>
   <div class="container">
-    <div class="chart-card">
-      <h2>채널별 매출 비중</h2>
-      <div class="adv-donut-wrap">
-        <div class="adv-donut-canvas-col"><canvas id="advDonutCanvas"></canvas></div>
-        <div class="adv-donut-leg-col donut-legend" id="advDonutLeg"></div>
-      </div>
+    <!-- KPI -->
+    <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+      <div class="kpi"><div class="kpi-label">총 방문수</div>
+        <div class="kpi-value c-vis" id="adv-kv">–</div>
+        <div class="kpi-sub" id="adv-kv2"></div></div>
+      <div class="kpi"><div class="kpi-label">총 결제건수</div>
+        <div class="kpi-value" id="adv-ko">–</div>
+        <div class="kpi-sub" id="adv-ko2"></div></div>
+      <div class="kpi"><div class="kpi-label">구매 전환율</div>
+        <div class="kpi-value c-good" id="adv-kc">–</div>
+        <div class="kpi-sub">결제/방문</div></div>
+      <div class="kpi"><div class="kpi-label">총 매출기여</div>
+        <div class="kpi-value c-acc" id="adv-ks">–</div>
+        <div class="kpi-sub" id="adv-ks2"></div></div>
     </div>
+    <!-- 채널별 방문 현황 -->
     <div class="chart-card">
       <h2>채널별 방문 현황</h2>
       <div class="adv-table-wrap">
@@ -621,6 +630,15 @@
         </table>
       </div>
     </div>
+    <!-- 채널별 매출 비중 도넛 -->
+    <div class="chart-card">
+      <h2>채널별 매출 비중</h2>
+      <div class="adv-donut-wrap">
+        <div class="adv-donut-canvas-col"><canvas id="advDonutCanvas"></canvas></div>
+        <div class="adv-donut-leg-col donut-legend" id="advDonutLeg"></div>
+      </div>
+    </div>
+    <!-- 일별 채널 방문 추이 -->
     <div class="chart-card">
       <h2>일별 채널 방문 추이</h2>
       <div style="overflow:hidden">
@@ -2616,14 +2634,30 @@ function drawAdvDonut(){
 }
 
 function drawAdvert(){
+  // KPI 계산
+  let totV=0,totO=0,totS=0;
+  advData.forEach(row=>{
+    ADV_CHS.forEach((_,ci)=>{
+      totV+=row[1+ci*3]||0;
+      totO+=row[2+ci*3]||0;
+      totS+=row[3+ci*3]||0;
+    });
+  });
+  const cvr=totV?(totO/totV*100).toFixed(1):'0.0';
+  const n=advData.length;
+  document.getElementById('adv-kv').textContent=totV.toLocaleString();
+  document.getElementById('adv-kv2').textContent='일 평균 '+Math.round(totV/Math.max(n,1)).toLocaleString()+'명';
+  document.getElementById('adv-ko').textContent=totO.toLocaleString()+'건';
+  document.getElementById('adv-ko2').textContent='일 평균 '+Math.round(totO/Math.max(n,1)).toLocaleString()+'건';
+  document.getElementById('adv-kc').textContent=cvr+'%';
+  document.getElementById('adv-ks').textContent=fmtS(totS);
+  document.getElementById('adv-ks2').textContent=totS.toLocaleString()+'원';
+  // 결과 요약
+  const lbl=n?advData[0][0]+(n>1?' – '+advData[n-1][0]:''):'';
+  document.getElementById('advResult').innerHTML=lbl+' · 총 <strong>'+totV.toLocaleString()+'</strong>명';
   drawAdvDonut();
   drawAdvTable();
   drawAdvDaily();
-  // 결과 요약 표시
-  const n=advData.length;
-  const lbl=n?advData[0][0]+(n>1?' – '+advData[n-1][0]:''):'';
-  const totalV=advData.reduce((s,r)=>s+(r[1]||0)+(r[4]||0)+(r[7]||0)+(r[10]||0)+(r[13]||0),0);
-  document.getElementById('advResult').innerHTML=lbl+' · 총 <strong>'+totalV.toLocaleString()+'</strong>명';
 }
 
 function getSubSums(){
