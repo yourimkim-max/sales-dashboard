@@ -2632,12 +2632,13 @@ function drawAdvTable(){
     const subRows=subKeys.map(ch2=>{
       const {v:sv,o:so,s:ss}=subs[ch2];
       const scvr=sv?(so/sv*100).toFixed(1):'0.0';
+      const subPct=s?(ss/s*100).toFixed(1):'0.0';
       return `<tr class="adv-sub-row hidden" data-ch="${ci}">
         <td>${ch2}</td>
         <td class="num">${sv.toLocaleString()}</td>
         <td class="num">${so.toLocaleString()}</td>
         <td class="num">${scvr}%</td>
-        <td class="num">${ss.toLocaleString()}</td>
+        <td class="num">${ss.toLocaleString()}<span style="color:var(--text-3);font-size:11px;margin-left:5px">${subPct}%</span></td>
         <td></td>
       </tr>`;
     }).join('');
