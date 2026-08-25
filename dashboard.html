@@ -596,6 +596,9 @@
     <span class="fresult" id="advResult"></span>
   </div>
   <div class="container">
+    <!-- 기간 요약 -->
+    <div id="advSummary" style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:12px;
+      padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px"></div>
     <!-- KPI -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="kpi"><div class="kpi-label">총 방문수</div>
@@ -2634,7 +2637,7 @@ function drawAdvDonut(){
 }
 
 function drawAdvert(){
-  // KPI 계산
+  // KPI 계산 (방문 데이터)
   let totV=0,totO=0,totS=0;
   advData.forEach(row=>{
     ADV_CHS.forEach((_,ci)=>{
@@ -2652,8 +2655,20 @@ function drawAdvert(){
   document.getElementById('adv-kc').textContent=cvr+'%';
   document.getElementById('adv-ks').textContent=fmtS(totS);
   document.getElementById('adv-ks2').textContent=totS.toLocaleString()+'원';
-  // 결과 요약
+  // 기간 요약 (매출 데이터 ALL 기준)
+  const labels=new Set(advData.map(r=>r[0]));
+  let salS=0,salO=0,salR=0;
+  ALL.forEach(row=>{ if(labels.has(row[0])){ salS+=row[1]||0; salO+=row[2]||0; salR+=row[3]||0; } });
   const lbl=n?advData[0][0]+(n>1?' – '+advData[n-1][0]:''):'';
+  const refPct=salO?(salR/salO*100).toFixed(1):'0.0';
+  document.getElementById('advSummary').innerHTML=
+    `<span style="font-weight:700;color:var(--text-1)">${lbl}</span>`+
+    `<span style="color:var(--border);margin:0 10px">|</span>`+
+    `${n}일간 · `+
+    `순매출 <strong style="color:var(--accent)">${fmtS(salS)}</strong> · `+
+    `주문 <strong>${salO.toLocaleString()}건</strong> · `+
+    `환불 <strong style="color:var(--warn)">${salR.toLocaleString()}건</strong>`+
+    `<span style="color:var(--text-3);font-size:12px"> (${refPct}%)</span>`;
   document.getElementById('advResult').innerHTML=lbl+' · 총 <strong>'+totV.toLocaleString()+'</strong>명';
   drawAdvDonut();
   drawAdvTable();
