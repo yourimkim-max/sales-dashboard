@@ -524,6 +524,24 @@
 
 <!-- ════ ADVERT PANE ════ -->
 <div id="pane-advert" class="pane">
+  <div class="filter-bar">
+    <span class="flabel">기간</span>
+    <button class="chip active" id="adv-chip-all" onclick="setAdvFilterAll()">전체</button>
+    <select id="advMonthSel" class="month-sel" onchange="setAdvFilterMonth(this)">
+      <option value="">월별지정</option>
+      <!-- ADV_MONTH_OPTS -->
+      <option value="08">8월</option>
+      <!-- /ADV_MONTH_OPTS -->
+    </select>
+    <button class="chip" id="adv-chip-custom" onclick="setAdvFilterCustom()">일자지정</button>
+    <div class="date-row" id="advDateRow">
+      <input type="date" id="advFrom" value="2026-08-01" min="2026-08-01" max="2026-08-23">
+      <span class="dsep">–</span>
+      <input type="date" id="advTo" value="2026-08-23" min="2026-08-01" max="2026-08-23">
+      <button class="apply-btn" onclick="applyAdvert()">적용</button>
+    </div>
+    <span class="fresult" id="advResult"></span>
+  </div>
   <div class="container">
     <div class="chart-card">
       <h2>채널별 방문 현황</h2>
@@ -2076,29 +2094,29 @@ const VISIT_CH=[
   ["기타",26569,172,0.6,11578450]
 ];
 const VISIT_DAILY=[
-  ["08/01",11069,4053,2900,1106,1901],
-  ["08/02",8210,4205,3072,1099,1671],
-  ["08/03",7304,4235,2803,1607,1569],
-  ["08/04",7079,4227,2864,1537,1174],
-  ["08/05",7138,4272,2762,1706,1421],
-  ["08/06",6725,4423,2700,1399,1265],
-  ["08/07",6663,3844,2309,1348,1257],
-  ["08/08",6882,3942,2527,1244,1313],
-  ["08/09",9020,4563,3445,1423,1250],
-  ["08/10",15944,5107,4320,1902,1939],
-  ["08/11",6976,4166,2618,1338,843],
-  ["08/12",5755,3970,2263,1152,710],
-  ["08/13",4940,3914,1943,1552,821],
-  ["08/14",5006,3762,1929,1331,707],
-  ["08/15",5288,3716,2064,1239,747],
-  ["08/16",5908,4040,2398,1301,780],
-  ["08/17",10071,4384,2621,1410,976],
-  ["08/18",7281,4091,2307,1583,1182],
-  ["08/19",6396,3852,2175,1579,1124],
-  ["08/20",5727,4003,1875,1537,921],
-  ["08/21",5363,3627,1842,1259,905],
-  ["08/22",6037,3678,1933,1224,968],
-  ["08/23",6327,4265,2340,1428,1125]
+  ["08/01",11069,501,30046380,4053,98,6250480,2900,130,6801740,1106,21,1248260,1901,13,960850],
+  ["08/02",8210,273,20529060,4205,87,6009840,3072,98,7067900,1099,18,1207900,1671,2,82000],
+  ["08/03",7304,283,20835210,4235,69,5784670,2803,86,6234650,1607,19,14776320,1569,4,301100],
+  ["08/04",7079,269,19352040,4227,75,5902840,2864,78,5136420,1537,18,1397960,1174,8,571120],
+  ["08/05",7138,291,21375110,4272,71,5694680,2762,77,5261790,1706,22,1657960,1421,2,279000],
+  ["08/06",6725,249,17887230,4423,84,6591320,2700,71,5086440,1399,21,1542430,1265,7,491520],
+  ["08/07",6663,260,18666930,3844,70,4351480,2309,54,4040560,1348,11,614720,1257,6,439520],
+  ["08/08",6882,292,20252540,3942,70,4980760,2527,63,4478290,1244,6,591300,1313,7,273800],
+  ["08/09",9020,404,26912460,4563,92,6018230,3445,103,6300040,1423,24,1292380,1250,9,482500],
+  ["08/10",15944,1147,69647660,5107,188,11328380,4320,241,13834600,1902,48,2738530,1939,25,1666440],
+  ["08/11",6976,166,11990720,4166,45,4192240,2618,59,4649050,1338,11,625920,843,7,346770],
+  ["08/12",5755,206,15463350,3970,65,6186520,2263,86,6832710,1152,15,1131330,710,7,390250],
+  ["08/13",4940,162,10518420,3914,43,2722890,1943,54,4246040,1552,18,11739550,821,2,215600],
+  ["08/14",5006,179,12309790,3762,43,3604660,1929,65,4937860,1331,26,1931880,707,8,372570],
+  ["08/15",5288,193,13558600,3716,46,3765960,2064,68,4503660,1239,13,767720,747,4,298260],
+  ["08/16",5908,207,14022320,4040,58,4519030,2398,64,4787900,1301,15,1082610,780,7,420100],
+  ["08/17",10071,358,22709900,4384,93,6499890,2621,91,5991560,1410,17,927620,976,11,722760],
+  ["08/18",7281,256,17889190,4091,65,4502950,2307,72,4807560,1583,24,1994940,1182,5,333090],
+  ["08/19",6396,232,17425790,3852,63,4393080,2175,80,5282190,1579,21,1786050,1124,7,554250],
+  ["08/20",5727,194,14653050,4003,63,4486820,1875,51,3305330,1537,19,1279640,921,9,607120],
+  ["08/21",5363,215,15988790,3627,80,5675340,1842,70,4629130,1259,30,2108320,905,8,618280],
+  ["08/22",6037,236,16073000,3678,72,4599240,1933,72,5059050,1224,23,1528600,968,5,504850],
+  ["08/23",6327,254,18341120,4265,65,5087550,2340,80,5253290,1428,19,978480,1125,9,646700]
 ];
 
 // ══════════════════════════════════════════════════════════════
@@ -2202,31 +2220,79 @@ function initNewProds(){
 // ══════════════════════════════════════════════════════════════
 // ADVERT TAB
 // ══════════════════════════════════════════════════════════════
-const ADV_CHS   = ['네이버 서비스','네이버 광고','네이버 검색','직유입','기타'];
-const ADV_COLS  = ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#9CA3AF'];
+const ADV_CHS  = ['네이버 서비스','네이버 광고','네이버 검색','직유입','기타'];
+const ADV_COLS = ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#9CA3AF'];
+// VISIT_DAILY 인덱스: row[1+ci*3]=visits, row[2+ci*3]=orders, row[3+ci*3]=sales
+let advData = VISIT_DAILY.slice();
+
+function setAdvFilterAll(){
+  document.getElementById('adv-chip-all').classList.add('active');
+  document.getElementById('adv-chip-custom').classList.remove('active');
+  const sel=document.getElementById('advMonthSel'); sel.value=''; sel.classList.remove('active');
+  document.getElementById('advDateRow').classList.remove('on');
+  advData=VISIT_DAILY.slice();
+  drawAdvert();
+}
+function setAdvFilterMonth(sel){
+  const v=sel.value;
+  if(!v){ setAdvFilterAll(); return; }
+  document.getElementById('adv-chip-all').classList.remove('active');
+  document.getElementById('adv-chip-custom').classList.remove('active');
+  sel.classList.add('active');
+  document.getElementById('advDateRow').classList.remove('on');
+  advData=VISIT_DAILY.filter(d=>d[0].startsWith(v));
+  drawAdvert();
+}
+function setAdvFilterCustom(){
+  document.getElementById('adv-chip-all').classList.remove('active');
+  document.getElementById('adv-chip-custom').classList.add('active');
+  const sel=document.getElementById('advMonthSel'); sel.value=''; sel.classList.remove('active');
+  document.getElementById('advDateRow').classList.add('on');
+}
+function applyAdvert(){
+  const f=document.getElementById('advFrom').value, t=document.getElementById('advTo').value;
+  if(!f||!t||f>t) return;
+  const fl=f.slice(5).replace('-','/'), tl=t.slice(5).replace('-','/');
+  advData=VISIT_DAILY.filter(d=>d[0]>=fl&&d[0]<=tl);
+  drawAdvert();
+}
 
 function drawAdvert(){
   drawAdvTable();
   drawAdvDaily();
+  // 결과 요약 표시
+  const n=advData.length;
+  const lbl=n?advData[0][0]+(n>1?' – '+advData[n-1][0]:''):'';
+  const totalV=advData.reduce((s,r)=>s+(r[1]||0)+(r[4]||0)+(r[7]||0)+(r[10]||0)+(r[13]||0),0);
+  document.getElementById('advResult').innerHTML=lbl+' · 총 <strong>'+totalV.toLocaleString()+'</strong>명';
 }
 
 function drawAdvTable(){
-  const body = document.getElementById('advChBody');
+  const body=document.getElementById('advChBody');
   if(!body) return;
-  const totalSales = VISIT_CH.reduce((s,r)=>s+r[4],0);
-  body.innerHTML = VISIT_CH.map(r=>{
-    const ci  = ADV_CHS.indexOf(r[0]);
-    const dot = ci>=0 ? ADV_COLS[ci] : '#9CA3AF';
-    const sPct = totalSales ? r[4]/totalSales*100 : 0;
+  // advData에서 채널별 집계
+  const sums=ADV_CHS.map(()=>({v:0,o:0,s:0}));
+  advData.forEach(row=>{
+    ADV_CHS.forEach((_,ci)=>{
+      sums[ci].v+=row[1+ci*3]||0;
+      sums[ci].o+=row[2+ci*3]||0;
+      sums[ci].s+=row[3+ci*3]||0;
+    });
+  });
+  const totalS=sums.reduce((t,c)=>t+c.s,0);
+  body.innerHTML=ADV_CHS.map((ch,ci)=>{
+    const {v,o,s}=sums[ci];
+    const cvr=v?(o/v*100).toFixed(1):'0.0';
+    const sPct=totalS?s/totalS*100:0;
     return `<tr>
-      <td><span class="adv-ch-dot" style="background:${dot}"></span>${r[0]}</td>
-      <td class="num">${r[1].toLocaleString()}</td>
-      <td class="num">${r[2].toLocaleString()}</td>
-      <td class="num">${r[3]}%</td>
-      <td class="num">${fmtS(r[4])}</td>
+      <td><span class="adv-ch-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</td>
+      <td class="num">${v.toLocaleString()}</td>
+      <td class="num">${o.toLocaleString()}</td>
+      <td class="num">${cvr}%</td>
+      <td class="num">${fmtS(s)}</td>
       <td class="num">
         <div class="adv-bar-wrap">
-          <div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${sPct.toFixed(1)}%;background:${dot}"></div></div>
+          <div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${sPct.toFixed(1)}%;background:${ADV_COLS[ci]}"></div></div>
           <span class="adv-bar-pct">${sPct.toFixed(1)}%</span>
         </div>
       </td>
@@ -2235,11 +2301,11 @@ function drawAdvTable(){
 }
 
 function drawAdvDaily(){
-  const canvas = document.getElementById('advDailyCanvas');
-  if(!canvas || !VISIT_DAILY.length){ return; }
-  const dpr = window.devicePixelRatio||1;
+  const canvas=document.getElementById('advDailyCanvas');
+  if(!canvas||!advData.length) return;
+  const dpr=window.devicePixelRatio||1;
   canvas.style.width='';
-  const W = canvas.offsetWidth||400, H=220;
+  const W=canvas.offsetWidth||400, H=220;
   canvas.width=W*dpr; canvas.height=H*dpr;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
   const ctx=canvas.getContext('2d');
@@ -2247,14 +2313,13 @@ function drawAdvDaily(){
 
   const PAD={top:12,right:14,bottom:28,left:50};
   const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
-  const n=VISIT_DAILY.length;
+  const n=advData.length;
   let maxV=1;
-  VISIT_DAILY.forEach(row=>{ for(let k=1;k<=5;k++) maxV=Math.max(maxV,row[k]||0); });
+  advData.forEach(row=>{ ADV_CHS.forEach((_,ci)=>{ maxV=Math.max(maxV,row[1+ci*3]||0); }); });
 
   const xf=i=>PAD.left+i*cW/Math.max(n-1,1);
   const yf=v=>PAD.top+cH*(1-v/maxV);
 
-  // Grid + Y labels
   [0,0.25,0.5,0.75,1].forEach(t=>{
     const yy=PAD.top+cH*t;
     ctx.strokeStyle=css('--border'); ctx.lineWidth=0.5;
@@ -2264,25 +2329,20 @@ function drawAdvDaily(){
     ctx.fillText(v>=10000?Math.round(v/1000)+'k':v, PAD.left-4, yy+3);
   });
 
-  // Lines
   ADV_COLS.forEach((col,ci)=>{
     ctx.beginPath();
     ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round';
-    VISIT_DAILY.forEach((row,i)=>{
-      const v=row[ci+1]||0;
-      i===0 ? ctx.moveTo(xf(i),yf(v)) : ctx.lineTo(xf(i),yf(v));
+    advData.forEach((row,i)=>{
+      const v=row[1+ci*3]||0;
+      i===0?ctx.moveTo(xf(i),yf(v)):ctx.lineTo(xf(i),yf(v));
     });
     ctx.stroke();
   });
 
-  // X labels
   ctx.fillStyle=css('--text-3'); ctx.font='9px system-ui'; ctx.textAlign='center';
   const step=Math.max(1,Math.round(n/8));
-  VISIT_DAILY.forEach((row,i)=>{
-    if(i%step===0||i===n-1) ctx.fillText(row[0],xf(i),H-4);
-  });
+  advData.forEach((row,i)=>{ if(i%step===0||i===n-1) ctx.fillText(row[0],xf(i),H-4); });
 
-  // Legend
   const leg=document.getElementById('advDailyLeg');
   if(leg) leg.innerHTML=ADV_CHS.map((ch,ci)=>
     `<span class="adv-leg-item"><span class="adv-leg-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</span>`

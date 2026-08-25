@@ -100,7 +100,7 @@ print(f'\n기간: {start_date} ~ {end_date}  |  {len(daily)}일  |  월: {", ".j
 # ── 1b. 방문 분석 xlsx 읽기 ─────────────────────────────────────
 MAIN_CHS = ['네이버 서비스', '네이버 광고', '네이버 검색', '직유입']
 visit_ch    = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})
-visit_daily = defaultdict(lambda: defaultdict(int))  # date -> ch -> visits
+visit_daily = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))  # date -> ch -> {v,o,s}
 
 for fname in xlsx_files:
     try:
@@ -122,7 +122,9 @@ for fname in xlsx_files:
             visit_ch[ch_key]['v'] += v_val
             visit_ch[ch_key]['o'] += o_val
             visit_ch[ch_key]['s'] += s_val
-            visit_daily[date][ch_key] += v_val
+            visit_daily[date][ch_key]['v'] += v_val
+            visit_daily[date][ch_key]['o'] += o_val
+            visit_daily[date][ch_key]['s'] += s_val
         wb.close()
     except Exception:
         pass
@@ -193,13 +195,22 @@ for ch in ch_order:
     vc_rows.append(f'  ["{ch}",{visits},{orders},{cvr},{sales}]')
 visit_ch_js = 'const VISIT_CH=[\n' + ',\n'.join(vc_rows) + '\n];'
 
-# VISIT_DAILY
+# VISIT_DAILY: [label, v0,o0,s0, v1,o1,s1, v2,o2,s2, v3,o3,s3, v4,o4,s4]
 vd_rows = []
 for d in sorted(visit_daily.keys()):
-    lb   = f'{d[5:7]}/{d[8:10]}'
-    vals = ','.join(str(int(visit_daily[d].get(ch, 0))) for ch in ch_order)
-    vd_rows.append(f'  ["{lb}",{vals}]')
+    lb    = f'{d[5:7]}/{d[8:10]}'
+    parts = []
+    for ch in ch_order:
+        c = visit_daily[d].get(ch, {'v': 0, 'o': 0, 's': 0})
+        parts.append(f'{int(c["v"])},{int(c["o"])},{int(c["s"])}')
+    vd_rows.append(f'  ["{lb}",{",".join(parts)}]')
 visit_daily_js = 'const VISIT_DAILY=[\n' + ',\n'.join(vd_rows) + '\n];'
+
+# ADV_MONTHS: 방문 데이터 월 목록
+adv_months = sorted(set(d[5:7] for d in visit_daily.keys()))
+adv_month_opts = [f'      <option value="{mm}">{int(mm)}월</option>' for mm in adv_months]
+adv_month_opts_html = ('<!-- ADV_MONTH_OPTS -->\n' + '\n'.join(adv_month_opts)
+                       + '\n      <!-- /ADV_MONTH_OPTS -->')
 
 # ── 3. dashboard.html 패치 ──────────────────────────────────────
 
@@ -236,6 +247,14 @@ html = replace_block(html, 'const PROD_DAILY={\n', '\n};', prod_daily_js)
 html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
 html = replace_block(html, 'const VISIT_CH=[\n', '\n];', visit_ch_js)
 html = replace_block(html, 'const VISIT_DAILY=[\n', '\n];', visit_daily_js)
+if adv_months:
+    html = replace_block(html, '<!-- ADV_MONTH_OPTS -->', '<!-- /ADV_MONTH_OPTS -->', adv_month_opts_html)
+    adv_start = min(visit_daily.keys())
+    adv_end   = max(visit_daily.keys())
+    html = re.sub(r'(<input type="date" id="advFrom")[^>]*(>)',
+                  f'\\1 value="{adv_start}" min="{adv_start}" max="{adv_end}"\\2', html)
+    html = re.sub(r'(<input type="date" id="advTo")[^>]*(>)',
+                  f'\\1 value="{adv_end}" min="{adv_start}" max="{adv_end}"\\2', html)
 
 # 월별 필터 select 옵션 갱신
 month_opts = []
