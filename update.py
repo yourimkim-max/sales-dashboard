@@ -105,6 +105,8 @@ visit_ch      = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})
 visit_daily   = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))
 visit_sub_raw = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))  # date -> "ch1|ch2" -> {v,o,s}
 visit_sub_tot = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})  # "ch1|ch2" -> total
+visit_sub3_raw = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))  # date -> "ch1|ch2|ch3" -> {v,o,s}
+visit_sub3_tot = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})  # "ch1|ch2|ch3" -> total
 
 for fname in xlsx_files:
     try:
@@ -126,11 +128,13 @@ for fname in xlsx_files:
                 date = to_date(row[1])
                 ch1  = str(row[2]).strip() if row[2] else ''
                 ch2  = str(row[3]).strip() if row[3] else '-'
+                ch3  = str(row[4]).strip() if len(row) > 4 and row[4] else '-'
                 v_val, o_val, s_val = n(row[5]), n(row[6]), n(row[8])
             else:
                 date = to_date(row[0])
                 ch1  = str(row[1]).strip() if row[1] else ''
                 ch2  = str(row[2]).strip() if row[2] else '-'
+                ch3  = str(row[3]).strip() if len(row) > 3 and row[3] else '-'
                 v_val, o_val, s_val = n(row[4]), n(row[5]), n(row[7])
             if not date or date == 'None': continue
             if ch1 == '전체': continue
@@ -149,6 +153,14 @@ for fname in xlsx_files:
                 visit_sub_tot[sub_key]['v'] += v_val
                 visit_sub_tot[sub_key]['o'] += o_val
                 visit_sub_tot[sub_key]['s'] += s_val
+                if ch3 and ch3 != '전체':
+                    sub3_key = f'{ch_key}|{ch2}|{ch3}'
+                    visit_sub3_raw[date][sub3_key]['v'] += v_val
+                    visit_sub3_raw[date][sub3_key]['o'] += o_val
+                    visit_sub3_raw[date][sub3_key]['s'] += s_val
+                    visit_sub3_tot[sub3_key]['v'] += v_val
+                    visit_sub3_tot[sub3_key]['o'] += o_val
+                    visit_sub3_tot[sub3_key]['s'] += s_val
         wb.close()
     except Exception:
         pass
@@ -273,6 +285,46 @@ for key in sorted(sub_series.keys()):
     vsd_parts.append(f'  {json.dumps(key, ensure_ascii=False)}:{inner}')
 visit_sub_daily_js = 'const VISIT_SUB_DAILY={\n' + ',\n'.join(vsd_parts) + '\n};'
 
+# VISIT_SUB3_DAILY: ch1|ch2 별 top-N ch3
+MAX_SUB3 = 8
+ch12_top = defaultdict(dict)
+for key, tot in visit_sub3_tot.items():
+    parts = key.split('|', 2)
+    if len(parts) == 3:
+        ch12 = f'{parts[0]}|{parts[1]}'
+        ch12_top[ch12][parts[2]] = tot['v']
+ch12_keep = {ch12: set(sorted(d, key=d.get, reverse=True)[:MAX_SUB3])
+             for ch12, d in ch12_top.items()}
+for ch12 in list(ch12_keep.keys()):
+    if ch12_keep[ch12] == {'-'}:
+        del ch12_keep[ch12]
+
+grouped3 = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))
+for date, subs in visit_sub3_raw.items():
+    for sub3_key, vals in subs.items():
+        parts = sub3_key.split('|', 2)
+        if len(parts) != 3: continue
+        ch12 = f'{parts[0]}|{parts[1]}'
+        ch3 = parts[2]
+        if ch12 not in ch12_keep: continue
+        keep_ch3 = ch3 if ch3 in ch12_keep[ch12] else '기타'
+        final_key = f'{ch12}|{keep_ch3}'
+        grouped3[date][final_key]['v'] += vals['v']
+        grouped3[date][final_key]['o'] += vals['o']
+        grouped3[date][final_key]['s'] += vals['s']
+
+sub3_series = defaultdict(list)
+for date in sorted(grouped3.keys()):
+    lb = f'{date[5:7]}/{date[8:10]}'
+    for final_key, vals in grouped3[date].items():
+        sub3_series[final_key].append([lb, int(vals['v']), int(vals['o']), int(vals['s'])])
+
+vsd3_parts = []
+for key in sorted(sub3_series.keys()):
+    inner = json.dumps(sub3_series[key], ensure_ascii=False, separators=(',', ':'))
+    vsd3_parts.append(f'  {json.dumps(key, ensure_ascii=False)}:{inner}')
+visit_sub3_daily_js = 'const VISIT_SUB3_DAILY={\n' + ',\n'.join(vsd3_parts) + '\n};'
+
 # ADV_MONTHS: 방문 데이터 월 목록
 adv_months = sorted(set(d[5:7] for d in visit_daily.keys()))
 adv_month_opts = [f'      <option value="{mm}">{int(mm)}월</option>' for mm in adv_months]
@@ -315,6 +367,7 @@ html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
 html = replace_block(html, 'const VISIT_CH=[\n', '\n];', visit_ch_js)
 html = replace_block(html, 'const VISIT_DAILY=[\n', '\n];', visit_daily_js)
 html = replace_block(html, 'const VISIT_SUB_DAILY={\n', '\n};', visit_sub_daily_js)
+html = replace_block(html, 'const VISIT_SUB3_DAILY={\n', '\n};', visit_sub3_daily_js)
 if adv_months:
     html = replace_block(html, '<!-- ADV_MONTH_OPTS -->', '<!-- /ADV_MONTH_OPTS -->', adv_month_opts_html)
     adv_start = min(visit_daily.keys())
