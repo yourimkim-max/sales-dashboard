@@ -111,16 +111,28 @@ for fname in xlsx_files:
         if 'VISIT' not in wb.sheetnames:
             wb.close(); continue
         ws = wb['VISIT']
-        for row in ws.iter_rows(min_row=2, values_only=True):
+        rows_iter = ws.iter_rows(min_row=1, values_only=True)
+        header = next(rows_iter, None)
+        if header is None:
+            wb.close(); continue
+        # 포맷 감지: 헤더 첫 컬럼이 '날짜 기준'이면 구형, '날짜'면 신형
+        h0 = str(header[0]).strip() if header[0] else ''
+        old_fmt = '기준' in h0  # 구형: 날짜기준, 날짜, 경로(1단계)... / 신형: 날짜, 경로(1단계)...
+        for row in rows_iter:
             if not row or not row[0]: continue
-            if str(row[0]).strip() != '조회기간': continue
-            ch1 = str(row[2]).strip() if row[2] else ''
-            if ch1 == '전체': continue
-            date = to_date(row[1])
+            if old_fmt:
+                if str(row[0]).strip() != '조회기간': continue
+                date = to_date(row[1])
+                ch1  = str(row[2]).strip() if row[2] else ''
+                ch2  = str(row[3]).strip() if row[3] else '-'
+                v_val, o_val, s_val = n(row[5]), n(row[6]), n(row[8])
+            else:
+                date = to_date(row[0])
+                ch1  = str(row[1]).strip() if row[1] else ''
+                ch2  = str(row[2]).strip() if row[2] else '-'
+                v_val, o_val, s_val = n(row[4]), n(row[5]), n(row[7])
             if not date or date == 'None': continue
-            v_val = n(row[5])
-            o_val = n(row[6])
-            s_val = n(row[8])
+            if ch1 == '전체': continue
             ch_key = ch1 if ch1 in MAIN_CHS else '기타'
             visit_ch[ch_key]['v'] += v_val
             visit_ch[ch_key]['o'] += o_val
@@ -128,8 +140,6 @@ for fname in xlsx_files:
             visit_daily[date][ch_key]['v'] += v_val
             visit_daily[date][ch_key]['o'] += o_val
             visit_daily[date][ch_key]['s'] += s_val
-            # 경로(2단계) 수집
-            ch2 = str(row[3]).strip() if row[3] else '-'
             if ch2 and ch2 != '전체':
                 sub_key = f'{ch_key}|{ch2}'
                 visit_sub_raw[date][sub_key]['v'] += v_val
