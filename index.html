@@ -1514,7 +1514,7 @@ function drawDonut(canvasId, legendId, segments){
   if(!leg) return;
   leg.innerHTML=segments.map(seg=>{
     const pct=(seg.value/total*100).toFixed(1);
-    return `<div class="dl-row"><span class="dl-dot" style="background:${seg.color}"></span><span class="dl-label">${seg.label}</span><span class="dl-pct">${pct}%</span><span class="dl-val">${fmtS(seg.value)}</span></div>`;
+    return `<div class="dl-row"><span class="dl-dot" style="background:${seg.color}"></span><span class="dl-label">${seg.label}</span><span class="dl-pct">${pct}%</span><span class="dl-val">${seg.value.toLocaleString()}</span></div>`;
   }).join('');
 
   canvas.onmousemove=function(e){
@@ -1529,7 +1529,7 @@ function drawDonut(canvasId, legendId, segments){
     document.getElementById('tt-date').textContent=hit.label;
     document.getElementById('tt-r1').className='tt-row';
     document.getElementById('tt-l1').textContent=hit.pct+'%';
-    document.getElementById('tt-v1').textContent=fmtS(hit.value);
+    document.getElementById('tt-v1').textContent=hit.value.toLocaleString();
     document.getElementById('tt-r2').style.display='none';
     document.getElementById('tt-r3').style.display='none';
     showTT(e);
@@ -1665,7 +1665,7 @@ function updateCompare(){
   }
 
   const cards=[
-    {label:'총 순매출', v1:fmtS(s1.S), v2:fmtS(s2.S), delta:deltaTag(s1.S,s2.S,false), sub1:s1.S.toLocaleString()+'원', sub2:s2.S.toLocaleString()+'원'},
+    {label:'총 순매출', v1:s1.S.toLocaleString(), v2:s2.S.toLocaleString(), delta:deltaTag(s1.S,s2.S,false), sub1:'', sub2:''},
     {label:'총 주문건수', v1:s1.O.toLocaleString()+'건', v2:s2.O.toLocaleString()+'건', delta:deltaTag(s1.O,s2.O,false), sub1:'일 평균 '+Math.round(s1.O/s1.n).toLocaleString()+'건', sub2:'일 평균 '+Math.round(s2.O/s2.n).toLocaleString()+'건'},
     {label:'방문수', v1:s1.V.toLocaleString(), v2:s2.V.toLocaleString(), delta:deltaTag(s1.V,s2.V,false), sub1:'일 평균 '+Math.round(s1.V/s1.n).toLocaleString()+'명', sub2:'일 평균 '+Math.round(s2.V/s2.n).toLocaleString()+'명'},
     {label:'구매 전환율', v1:cv1+'%', v2:cv2+'%', delta:deltaTag(+cv1,+cv2,false), sub1:'주문/방문', sub2:'주문/방문'},
