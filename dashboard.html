@@ -206,6 +206,23 @@
   .col-code{width:128px}
   .col-cat{width:136px}
   .col-sub{width:160px}
+  /* Advert tab */
+  .adv-table-wrap{overflow-x:auto}
+  .adv-tbl{width:100%;border-collapse:collapse;font-size:13px}
+  .adv-tbl th{background:var(--surface2);padding:9px 12px;text-align:left;
+    font-size:11px;font-weight:600;letter-spacing:.3px;color:var(--text-3);
+    border-bottom:2px solid var(--border)}
+  .adv-tbl th.num,.adv-tbl td.num{text-align:right}
+  .adv-tbl td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+  .adv-tbl tbody tr:hover td{background:var(--surface2)}
+  .adv-ch-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle}
+  .adv-bar-wrap{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+  .adv-bar-bg{width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;flex-shrink:0}
+  .adv-bar-fill{height:100%;border-radius:3px}
+  .adv-bar-pct{font-size:11px;color:var(--text-3);min-width:34px;text-align:right}
+  .adv-legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;padding:0 2px}
+  .adv-leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-2)}
+  .adv-leg-dot{width:14px;height:3px;border-radius:2px;flex-shrink:0}
   .prod-sel{width:100%;background:var(--surface2);border:1px solid var(--border);
     color:var(--text-1);border-radius:6px;padding:4px 6px;font-size:12px;cursor:pointer;outline:none}
   .prod-sel:focus{border-color:var(--accent)}
@@ -246,6 +263,7 @@
   <button class="mtab active" id="mtab-analysis" onclick="switchMain('analysis')">분석</button>
   <button class="mtab" id="mtab-compare" onclick="switchMain('compare')">비교</button>
   <button class="mtab" id="mtab-category" onclick="switchMain('category')">상품 관리</button>
+  <button class="mtab" id="mtab-advert" onclick="switchMain('advert')">광고</button>
 </div>
 
 <!-- Tooltip -->
@@ -501,6 +519,37 @@
       </thead>
       <tbody id="prodTbody"></tbody>
     </table>
+  </div>
+</div>
+
+<!-- ════ ADVERT PANE ════ -->
+<div id="pane-advert" class="pane">
+  <div class="container">
+    <div class="chart-card">
+      <h2>채널별 방문 현황</h2>
+      <div class="adv-table-wrap">
+        <table class="adv-tbl">
+          <thead>
+            <tr>
+              <th>채널</th>
+              <th class="num">방문수</th>
+              <th class="num">결제건수</th>
+              <th class="num">전환율</th>
+              <th class="num">매출기여</th>
+              <th class="num">매출 비중</th>
+            </tr>
+          </thead>
+          <tbody id="advChBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h2>일별 채널 방문 추이</h2>
+      <div style="overflow:hidden">
+        <canvas id="advDailyCanvas"></canvas>
+      </div>
+      <div id="advDailyLeg" class="adv-legend"></div>
+    </div>
   </div>
 </div>
 
@@ -1100,6 +1149,7 @@ function switchMain(tab){
 function redrawActive(){
   if(activeMain==='analysis') drawAnalysis();
   else if(activeMain==='compare') drawCompare();
+  else if(activeMain==='advert') drawAdvert();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2018,6 +2068,39 @@ const PROD_LIST=[
   ["8854521023","예약구매 테스트","여행","기타"]
 ];
 
+const VISIT_CH=[
+  ["네이버 서비스",167109,6827,4.1,466448660],
+  ["네이버 광고",94339,1705,1.8,123148850],
+  ["네이버 검색",58010,1913,3.3,128527760],
+  ["직유입",32304,459,1.4,54950420],
+  ["기타",26569,172,0.6,11578450]
+];
+const VISIT_DAILY=[
+  ["08/01",11069,4053,2900,1106,1901],
+  ["08/02",8210,4205,3072,1099,1671],
+  ["08/03",7304,4235,2803,1607,1569],
+  ["08/04",7079,4227,2864,1537,1174],
+  ["08/05",7138,4272,2762,1706,1421],
+  ["08/06",6725,4423,2700,1399,1265],
+  ["08/07",6663,3844,2309,1348,1257],
+  ["08/08",6882,3942,2527,1244,1313],
+  ["08/09",9020,4563,3445,1423,1250],
+  ["08/10",15944,5107,4320,1902,1939],
+  ["08/11",6976,4166,2618,1338,843],
+  ["08/12",5755,3970,2263,1152,710],
+  ["08/13",4940,3914,1943,1552,821],
+  ["08/14",5006,3762,1929,1331,707],
+  ["08/15",5288,3716,2064,1239,747],
+  ["08/16",5908,4040,2398,1301,780],
+  ["08/17",10071,4384,2621,1410,976],
+  ["08/18",7281,4091,2307,1583,1182],
+  ["08/19",6396,3852,2175,1579,1124],
+  ["08/20",5727,4003,1875,1537,921],
+  ["08/21",5363,3627,1842,1259,905],
+  ["08/22",6037,3678,1933,1224,968],
+  ["08/23",6327,4265,2340,1428,1125]
+];
+
 // ══════════════════════════════════════════════════════════════
 // PRODUCT TAB
 // ══════════════════════════════════════════════════════════════
@@ -2114,6 +2197,96 @@ function initNewProds(){
   const banner=document.getElementById('newProdsBanner');
   banner.innerHTML=`<b>신규 상품 ${unacked.length}개</b><div>카테고리 지정 후 저장해주세요<ul>${names.map(n=>`<li>${n}</li>`).join('')}</ul></div>`;
   banner.style.display='flex';
+}
+
+// ══════════════════════════════════════════════════════════════
+// ADVERT TAB
+// ══════════════════════════════════════════════════════════════
+const ADV_CHS   = ['네이버 서비스','네이버 광고','네이버 검색','직유입','기타'];
+const ADV_COLS  = ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#9CA3AF'];
+
+function drawAdvert(){
+  drawAdvTable();
+  drawAdvDaily();
+}
+
+function drawAdvTable(){
+  const body = document.getElementById('advChBody');
+  if(!body) return;
+  const totalSales = VISIT_CH.reduce((s,r)=>s+r[4],0);
+  body.innerHTML = VISIT_CH.map(r=>{
+    const ci  = ADV_CHS.indexOf(r[0]);
+    const dot = ci>=0 ? ADV_COLS[ci] : '#9CA3AF';
+    const sPct = totalSales ? r[4]/totalSales*100 : 0;
+    return `<tr>
+      <td><span class="adv-ch-dot" style="background:${dot}"></span>${r[0]}</td>
+      <td class="num">${r[1].toLocaleString()}</td>
+      <td class="num">${r[2].toLocaleString()}</td>
+      <td class="num">${r[3]}%</td>
+      <td class="num">${fmt(r[4])}</td>
+      <td class="num">
+        <div class="adv-bar-wrap">
+          <div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${sPct.toFixed(1)}%;background:${dot}"></div></div>
+          <span class="adv-bar-pct">${sPct.toFixed(1)}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function drawAdvDaily(){
+  const canvas = document.getElementById('advDailyCanvas');
+  if(!canvas || !VISIT_DAILY.length){ return; }
+  const dpr = window.devicePixelRatio||1;
+  canvas.style.width='';
+  const W = canvas.offsetWidth||400, H=220;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+
+  const PAD={top:12,right:14,bottom:28,left:50};
+  const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
+  const n=VISIT_DAILY.length;
+  let maxV=1;
+  VISIT_DAILY.forEach(row=>{ for(let k=1;k<=5;k++) maxV=Math.max(maxV,row[k]||0); });
+
+  const xf=i=>PAD.left+i*cW/Math.max(n-1,1);
+  const yf=v=>PAD.top+cH*(1-v/maxV);
+
+  // Grid + Y labels
+  [0,0.25,0.5,0.75,1].forEach(t=>{
+    const yy=PAD.top+cH*t;
+    ctx.strokeStyle=css('--border'); ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(PAD.left,yy); ctx.lineTo(W-PAD.right,yy); ctx.stroke();
+    const v=Math.round(maxV*(1-t));
+    ctx.fillStyle=css('--text-3'); ctx.font='9px system-ui'; ctx.textAlign='right';
+    ctx.fillText(v>=10000?Math.round(v/1000)+'k':v, PAD.left-4, yy+3);
+  });
+
+  // Lines
+  ADV_COLS.forEach((col,ci)=>{
+    ctx.beginPath();
+    ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round';
+    VISIT_DAILY.forEach((row,i)=>{
+      const v=row[ci+1]||0;
+      i===0 ? ctx.moveTo(xf(i),yf(v)) : ctx.lineTo(xf(i),yf(v));
+    });
+    ctx.stroke();
+  });
+
+  // X labels
+  ctx.fillStyle=css('--text-3'); ctx.font='9px system-ui'; ctx.textAlign='center';
+  const step=Math.max(1,Math.round(n/8));
+  VISIT_DAILY.forEach((row,i)=>{
+    if(i%step===0||i===n-1) ctx.fillText(row[0],xf(i),H-4);
+  });
+
+  // Legend
+  const leg=document.getElementById('advDailyLeg');
+  if(leg) leg.innerHTML=ADV_CHS.map((ch,ci)=>
+    `<span class="adv-leg-item"><span class="adv-leg-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</span>`
+  ).join('');
 }
 
 updateAnalysis();

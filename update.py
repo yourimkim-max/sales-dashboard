@@ -1,15 +1,15 @@
 """
 update.py
 ---------
-폴더 내 모든 .xlsx 파일을 읽어 dashboard.html 데이터를 자동 갱신합니다.
-- 기존 07.01-08.23 베이스 파일 + 새로 추가되는 일별 파일 모두 합산
-- 새 파일을 폴더에 추가한 뒤 이 스크립트를 실행하면 됩니다
+'데이터 RAW' 폴더 내 모든 .xlsx 파일을 읽어 dashboard.html 데이터를 자동 갱신합니다.
+- 새 파일을 '데이터 RAW' 폴더에 추가한 뒤 이 스크립트를 실행하면 됩니다
 """
 
-import openpyxl, glob, re, json
+import openpyxl, glob, re, json, calendar
 from collections import defaultdict
 
 DASHBOARD = 'dashboard.html'
+DATA_DIR  = '데이터 RAW'
 INDEX     = 'index.html'
 
 # ── 유틸 ────────────────────────────────────────────────────────
@@ -42,9 +42,9 @@ def assign_cat(name):
 
 # ── 1. 전체 xlsx 파일 읽기 ──────────────────────────────────────
 
-xlsx_files = sorted(glob.glob('*.xlsx'))
+xlsx_files = sorted(glob.glob(f'{DATA_DIR}/*.xlsx'))
 if not xlsx_files:
-    print('ERROR: .xlsx 파일이 없습니다'); exit(1)
+    print(f'ERROR: "{DATA_DIR}" 폴더에 .xlsx 파일이 없습니다'); exit(1)
 
 print(f'파일 {len(xlsx_files)}개 발견:')
 
@@ -53,6 +53,7 @@ prod_all      = defaultdict(lambda: {'s': 0, 'o': 0})
 prod_mon      = defaultdict(lambda: defaultdict(lambda: {'s': 0, 'o': 0}))
 prod_map      = {}  # code -> {name, s}
 prod_code_mon = defaultdict(lambda: defaultdict(int))  # mm -> code -> sales
+prod_daily    = defaultdict(lambda: defaultdict(lambda: [0, 0]))  # date -> code -> [sales, orders]
 
 for fname in xlsx_files:
     try:
@@ -80,6 +81,8 @@ for fname in xlsx_files:
                     prod_map[code] = {'name': name, 's': 0}
                 prod_map[code]['s'] += s
                 prod_code_mon[mm][code] += int(s)
+                prod_daily[date][code][0] += int(s)
+                prod_daily[date][code][1] += int(o)
             cnt += 1
         print(f'  OK  {fname}  ({cnt:,}행)')
         wb.close()
@@ -93,6 +96,36 @@ months     = sorted(set(d[5:7] for d in daily.keys()))
 start_date = min(daily.keys())
 end_date   = max(daily.keys())
 print(f'\n기간: {start_date} ~ {end_date}  |  {len(daily)}일  |  월: {", ".join(months)}')
+
+# ── 1b. 방문 분석 xlsx 읽기 ─────────────────────────────────────
+MAIN_CHS = ['네이버 서비스', '네이버 광고', '네이버 검색', '직유입']
+visit_ch    = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})
+visit_daily = defaultdict(lambda: defaultdict(int))  # date -> ch -> visits
+
+for fname in xlsx_files:
+    try:
+        wb = openpyxl.load_workbook(fname, data_only=True)
+        if 'VISIT' not in wb.sheetnames:
+            wb.close(); continue
+        ws = wb['VISIT']
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            if not row or not row[0]: continue
+            if str(row[0]).strip() != '조회기간': continue
+            ch1 = str(row[2]).strip() if row[2] else ''
+            if ch1 == '전체': continue
+            date = to_date(row[1])
+            if not date or date == 'None': continue
+            v_val = n(row[5])
+            o_val = n(row[6])
+            s_val = n(row[8])
+            ch_key = ch1 if ch1 in MAIN_CHS else '기타'
+            visit_ch[ch_key]['v'] += v_val
+            visit_ch[ch_key]['o'] += o_val
+            visit_ch[ch_key]['s'] += s_val
+            visit_daily[date][ch_key] += v_val
+        wb.close()
+    except Exception:
+        pass
 
 # ── 2. JS 블록 생성 ─────────────────────────────────────────────
 
@@ -140,6 +173,34 @@ for mm in months:
     ps_parts.append(f"  '{mm}':" + json.dumps(ps_m, ensure_ascii=False, separators=(',', ':')))
 prod_sales_js = 'const PROD_SALES={\n' + ',\n'.join(ps_parts) + '\n};'
 
+# PROD_DAILY: {'MM/DD': {code: [sales, orders]}, ...}
+pd_parts = []
+for d in sorted(prod_daily.keys()):
+    lb = f'{d[5:7]}/{d[8:10]}'
+    inner = json.dumps(dict(prod_daily[d]), ensure_ascii=False, separators=(',', ':'))
+    pd_parts.append(f'  "{lb}":{inner}')
+prod_daily_js = 'const PROD_DAILY={\n' + ',\n'.join(pd_parts) + '\n};'
+
+# VISIT_CH
+ch_order = MAIN_CHS + ['기타']
+vc_rows = []
+for ch in ch_order:
+    v = visit_ch.get(ch, {'v': 0, 'o': 0, 's': 0})
+    visits = int(v['v'])
+    orders = int(v['o'])
+    cvr    = round(orders / visits * 100, 1) if visits else 0.0
+    sales  = int(v['s'])
+    vc_rows.append(f'  ["{ch}",{visits},{orders},{cvr},{sales}]')
+visit_ch_js = 'const VISIT_CH=[\n' + ',\n'.join(vc_rows) + '\n];'
+
+# VISIT_DAILY
+vd_rows = []
+for d in sorted(visit_daily.keys()):
+    lb   = f'{d[5:7]}/{d[8:10]}'
+    vals = ','.join(str(int(visit_daily[d].get(ch, 0))) for ch in ch_order)
+    vd_rows.append(f'  ["{lb}",{vals}]')
+visit_daily_js = 'const VISIT_DAILY=[\n' + ',\n'.join(vd_rows) + '\n];'
+
 # ── 3. dashboard.html 패치 ──────────────────────────────────────
 
 def replace_block(html, start, end, new_js):
@@ -171,10 +232,48 @@ html = replace_block(html, 'const TOP_O = {',   '\n};', top_o_js)
 html = replace_block(html, 'const PEAKS = ',    ';',    peaks_js)
 html = replace_block(html, 'const NEW_PRODS=',  ';',    new_prods_js)
 html = replace_block(html, 'const PROD_SALES={\n', '\n};', prod_sales_js)
+html = replace_block(html, 'const PROD_DAILY={\n', '\n};', prod_daily_js)
 html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
+html = replace_block(html, 'const VISIT_CH=[\n', '\n];', visit_ch_js)
+html = replace_block(html, 'const VISIT_DAILY=[\n', '\n];', visit_daily_js)
+
+# 월별 필터 select 옵션 갱신
+month_opts = []
+for mm in months:
+    month_opts.append(f'      <option value="{mm}">{int(mm)}월</option>')
+month_opts_html = '<!-- MONTH_OPTS -->\n' + '\n'.join(month_opts) + '\n      <!-- /MONTH_OPTS -->'
+html = replace_block(html, '<!-- MONTH_OPTS -->', '<!-- /MONTH_OPTS -->', month_opts_html)
+
+# 날짜 입력 필드 min/max/value 업데이트
+yr = start_date[:4]
+sorted_months = sorted(months)
+# 비교 탭 기본값: 마지막 두 달
+if len(sorted_months) >= 2:
+    last_m, prev_m = sorted_months[-1], sorted_months[-2]
+    days_prev = calendar.monthrange(int(yr), int(prev_m))[1]
+    p1_from = f'{yr}-{prev_m}-01'
+    p1_to   = f'{yr}-{prev_m}-{days_prev:02d}'
+    p2_from = f'{yr}-{last_m}-01'
+    p2_to   = end_date
+else:
+    p1_from = p1_to = p2_from = p2_to = start_date
+
+def upd_input(html, id_, value, min_, max_):
+    return re.sub(
+        rf'(<input type="date" id="{id_}")[^>]*(>)',
+        f'\\1 value="{value}" min="{min_}" max="{max_}"\\2',
+        html
+    )
+
+html = upd_input(html, 'aFrom',  start_date, start_date, end_date)
+html = upd_input(html, 'aTo',    end_date,   start_date, end_date)
+html = upd_input(html, 'c1From', p1_from,    start_date, end_date)
+html = upd_input(html, 'c1To',   p1_to,      start_date, end_date)
+html = upd_input(html, 'c2From', p2_from,    start_date, end_date)
+html = upd_input(html, 'c2To',   p2_to,      start_date, end_date)
 
 # 타이틀 날짜 범위 업데이트 (예: 2026.07–08)
-yr, m1, m2 = start_date[:4], start_date[5:7], end_date[5:7]
+m1, m2 = start_date[5:7], end_date[5:7]
 new_range = f'{yr}.{m1}–{m2}' if m1 != m2 else f'{yr}.{m1}'
 html = re.sub(r'(매출 추이 대시보드 · )[\d.–\-]+', r'\g<1>' + new_range, html)
 
