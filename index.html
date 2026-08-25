@@ -2602,12 +2602,14 @@ function drawAdvTable(){
   const totalS=sums.reduce((t,c)=>t+c.s,0);
   const subSums=getSubSums();
 
-  body.innerHTML=ADV_CHS.map((ch,ci)=>{
+  const sortedCIs=ADV_CHS.map((_,ci)=>ci).sort((a,b)=>sums[b].s-sums[a].s);
+  body.innerHTML=sortedCIs.map(ci=>{
+    const ch=ADV_CHS[ci];
     const {v,o,s}=sums[ci];
     const cvr=v?(o/v*100).toFixed(1):'0.0';
     const sPct=totalS?s/totalS*100:0;
     const subs=subSums[ch]||{};
-    const subKeys=Object.keys(subs).sort((a,b)=>subs[b].v-subs[a].v);
+    const subKeys=Object.keys(subs).sort((a,b)=>subs[b].s-subs[a].s);
     const hasSub=subKeys.length>0;
 
     const mainRow=`<tr class="adv-main-row" onclick="${hasSub?'toggleAdvCh('+ci+')':''}">
@@ -2744,12 +2746,16 @@ function showAdvTT(e,idx){
   if(!tt) return;
   const row=advData[idx];
   tt.querySelector('.adv-tt-date').textContent=row[0];
-  tt.querySelector('.adv-tt-rows').innerHTML=ADV_CHS.map((ch,ci)=>{
-    const s=row[3+ci*3]||0;
+  const chData=ADV_CHS.map((ch,ci)=>({ch,ci,s:row[3+ci*3]||0}))
+    .sort((a,b)=>b.s-a.s);
+  const totalS=chData.reduce((t,c)=>t+c.s,0);
+  tt.querySelector('.adv-tt-rows').innerHTML=chData.map(({ch,ci,s})=>{
+    const pct=totalS?(s/totalS*100).toFixed(1):'0.0';
     return `<div style="display:flex;align-items:center;gap:7px;margin:3px 0">
       <span style="width:8px;height:8px;border-radius:50%;background:${ADV_COLS[ci]};flex-shrink:0"></span>
       <span style="flex:1;color:var(--text-2);font-size:11px">${ch}</span>
-      <span style="font-weight:600;font-variant-numeric:tabular-nums;font-size:12px">${s.toLocaleString()}</span>
+      <span style="color:var(--text-3);font-size:11px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right">${pct}%</span>
+      <span style="font-weight:600;font-variant-numeric:tabular-nums;font-size:12px;min-width:72px;text-align:right">${s.toLocaleString()}</span>
     </div>`;
   }).join('');
   tt.style.display='block';
