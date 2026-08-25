@@ -1149,7 +1149,7 @@ function switchMain(tab){
 function redrawActive(){
   if(activeMain==='analysis') drawAnalysis();
   else if(activeMain==='compare') drawCompare();
-  else if(activeMain==='advert') drawAdvert();
+  else if(activeMain==='advert') requestAnimationFrame(drawAdvert);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2223,7 +2223,7 @@ function drawAdvTable(){
       <td class="num">${r[1].toLocaleString()}</td>
       <td class="num">${r[2].toLocaleString()}</td>
       <td class="num">${r[3]}%</td>
-      <td class="num">${fmt(r[4])}</td>
+      <td class="num">${fmtS(r[4])}</td>
       <td class="num">
         <div class="adv-bar-wrap">
           <div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${sPct.toFixed(1)}%;background:${dot}"></div></div>
