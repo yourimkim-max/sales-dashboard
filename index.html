@@ -222,6 +222,13 @@
   .col-code{width:128px}
   .col-cat{width:136px}
   .col-sub{width:160px}
+  /* Advert donut */
+  .adv-donut-wrap{display:flex;gap:28px;align-items:center}
+  .adv-donut-canvas-col{flex:0 0 220px}
+  .adv-donut-canvas-col canvas{display:block;width:100%;height:200px}
+  .adv-donut-leg-col{flex:1;min-width:0}
+  @media(max-width:580px){.adv-donut-wrap{flex-direction:column}.adv-donut-canvas-col{flex:none;width:100%}}
+
   /* Advert tab */
   .adv-table-wrap{overflow-x:auto}
   .adv-tbl{width:100%;border-collapse:collapse;font-size:13px}
@@ -589,6 +596,13 @@
     <span class="fresult" id="advResult"></span>
   </div>
   <div class="container">
+    <div class="chart-card">
+      <h2>채널별 매출 비중</h2>
+      <div class="adv-donut-wrap">
+        <div class="adv-donut-canvas-col"><canvas id="advDonutCanvas"></canvas></div>
+        <div class="adv-donut-leg-col donut-legend" id="advDonutLeg"></div>
+      </div>
+    </div>
     <div class="chart-card">
       <h2>채널별 방문 현황</h2>
       <div class="adv-table-wrap">
@@ -2552,7 +2566,57 @@ function applyAdvert(){
   drawAdvert();
 }
 
+function drawAdvDonut(){
+  const canvas=document.getElementById('advDonutCanvas');
+  if(!canvas) return;
+  const sums=ADV_CHS.map(()=>({s:0}));
+  advData.forEach(row=>{ ADV_CHS.forEach((_,ci)=>{ sums[ci].s+=row[3+ci*3]||0; }); });
+  const segs=ADV_CHS
+    .map((ch,ci)=>({label:ch,value:sums[ci].s,color:ADV_COLS[ci]}))
+    .filter(s=>s.value>0)
+    .sort((a,b)=>b.value-a.value);
+  const dpr=window.devicePixelRatio||1;
+  canvas.style.width='';
+  const W=canvas.offsetWidth||220, H=200;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const total=segs.reduce((s,g)=>s+g.value,0);
+  ctx.clearRect(0,0,W,H);
+  if(!total){
+    ctx.fillStyle=css('--text-3');ctx.font='13px system-ui';ctx.textAlign='center';
+    ctx.fillText('데이터 없음',W/2,H/2); return;
+  }
+  const cx=W/2,cy=H/2,outerR=Math.min(cx,cy)-6,innerR=outerR*0.56,GAP=0.014;
+  let ang=-Math.PI/2;
+  segs.forEach(seg=>{
+    const sw=(seg.value/total)*(Math.PI*2)-GAP;
+    if(sw>0){
+      ctx.beginPath();
+      ctx.arc(cx,cy,outerR,ang,ang+sw);
+      ctx.arc(cx,cy,innerR,ang+sw,ang,true);
+      ctx.closePath();
+      ctx.fillStyle=seg.color; ctx.fill();
+    }
+    ang+=sw+GAP;
+  });
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=css('--text-1');
+  ctx.font=`bold ${Math.round(outerR*.26)}px system-ui`;
+  ctx.fillText(fmtS(total),cx,cy-10);
+  ctx.font=`${Math.round(outerR*.16)}px system-ui`;
+  ctx.fillStyle=css('--text-3');
+  ctx.fillText('매출기여',cx,cy+12);
+  const leg=document.getElementById('advDonutLeg');
+  if(leg) leg.innerHTML=segs.map(seg=>{
+    const pct=(seg.value/total*100).toFixed(1);
+    return `<div class="dl-row"><span class="dl-dot" style="background:${seg.color}"></span><span class="dl-label">${seg.label}</span><span class="dl-pct">${pct}%</span><span class="dl-val">${seg.value.toLocaleString()}</span></div>`;
+  }).join('');
+}
+
 function drawAdvert(){
+  drawAdvDonut();
   drawAdvTable();
   drawAdvDaily();
   // 결과 요약 표시
