@@ -7,6 +7,7 @@ update.py
 
 import openpyxl, glob, re, json, calendar
 from collections import defaultdict
+from datetime import datetime, timedelta
 
 DASHBOARD = 'dashboard.html'
 DATA_DIR  = '데이터 RAW'
@@ -318,8 +319,9 @@ if adv_months:
     html = replace_block(html, '<!-- ADV_MONTH_OPTS -->', '<!-- /ADV_MONTH_OPTS -->', adv_month_opts_html)
     adv_start = min(visit_daily.keys())
     adv_end   = max(visit_daily.keys())
+    adv_last30 = max(adv_start, (datetime.strptime(adv_end, '%Y-%m-%d') - timedelta(days=29)).strftime('%Y-%m-%d'))
     html = re.sub(r'(<input type="date" id="advFrom")[^>]*(>)',
-                  f'\\1 value="{adv_start}" min="{adv_start}" max="{adv_end}"\\2', html)
+                  f'\\1 value="{adv_last30}" min="{adv_start}" max="{adv_end}"\\2', html)
     html = re.sub(r'(<input type="date" id="advTo")[^>]*(>)',
                   f'\\1 value="{adv_end}" min="{adv_start}" max="{adv_end}"\\2', html)
 
@@ -351,7 +353,8 @@ def upd_input(html, id_, value, min_, max_):
         html
     )
 
-html = upd_input(html, 'aFrom',  start_date, start_date, end_date)
+a_last30 = max(start_date, (datetime.strptime(end_date, '%Y-%m-%d') - timedelta(days=29)).strftime('%Y-%m-%d'))
+html = upd_input(html, 'aFrom',  a_last30,   start_date, end_date)
 html = upd_input(html, 'aTo',    end_date,   start_date, end_date)
 html = upd_input(html, 'c1From', p1_from,    start_date, end_date)
 html = upd_input(html, 'c1To',   p1_to,      start_date, end_date)
