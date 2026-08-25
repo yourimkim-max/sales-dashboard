@@ -42,7 +42,8 @@ def assign_cat(name):
 
 # ── 1. 전체 xlsx 파일 읽기 ──────────────────────────────────────
 
-xlsx_files = sorted(glob.glob(f'{DATA_DIR}/*.xlsx'))
+xlsx_files = sorted(glob.glob(f'{DATA_DIR}/**/*.xlsx', recursive=True) +
+                    glob.glob(f'{DATA_DIR}/*.xlsx'))
 if not xlsx_files:
     print(f'ERROR: "{DATA_DIR}" 폴더에 .xlsx 파일이 없습니다'); exit(1)
 
@@ -99,8 +100,10 @@ print(f'\n기간: {start_date} ~ {end_date}  |  {len(daily)}일  |  월: {", ".j
 
 # ── 1b. 방문 분석 xlsx 읽기 ─────────────────────────────────────
 MAIN_CHS = ['네이버 서비스', '네이버 광고', '네이버 검색', '직유입']
-visit_ch    = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})
-visit_daily = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))  # date -> ch -> {v,o,s}
+visit_ch      = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})
+visit_daily   = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))
+visit_sub_raw = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))  # date -> "ch1|ch2" -> {v,o,s}
+visit_sub_tot = defaultdict(lambda: {'v': 0, 'o': 0, 's': 0})  # "ch1|ch2" -> total
 
 for fname in xlsx_files:
     try:
@@ -125,6 +128,16 @@ for fname in xlsx_files:
             visit_daily[date][ch_key]['v'] += v_val
             visit_daily[date][ch_key]['o'] += o_val
             visit_daily[date][ch_key]['s'] += s_val
+            # 경로(2단계) 수집
+            ch2 = str(row[3]).strip() if row[3] else '-'
+            if ch2 and ch2 != '전체':
+                sub_key = f'{ch_key}|{ch2}'
+                visit_sub_raw[date][sub_key]['v'] += v_val
+                visit_sub_raw[date][sub_key]['o'] += o_val
+                visit_sub_raw[date][sub_key]['s'] += s_val
+                visit_sub_tot[sub_key]['v'] += v_val
+                visit_sub_tot[sub_key]['o'] += o_val
+                visit_sub_tot[sub_key]['s'] += s_val
         wb.close()
     except Exception:
         pass
@@ -206,6 +219,49 @@ for d in sorted(visit_daily.keys()):
     vd_rows.append(f'  ["{lb}",{",".join(parts)}]')
 visit_daily_js = 'const VISIT_DAILY=[\n' + ',\n'.join(vd_rows) + '\n];'
 
+# VISIT_SUB_DAILY: ch1별 top-N ch2를 날짜별로 기록
+# ch1 당 방문 많은 순 top 8 ch2 유지, 나머지는 '기타'로 합산
+MAX_SUB = 8
+# ch1 별 ch2 랭킹
+ch1_top = defaultdict(dict)
+for key, tot in visit_sub_tot.items():
+    ch1, ch2 = key.split('|', 1)
+    ch1_top[ch1][ch2] = tot['v']
+ch1_keep = {ch1: set(sorted(d, key=d.get, reverse=True)[:MAX_SUB])
+            for ch1, d in ch1_top.items()}
+
+# ch1='직유입', ch2='-' → subchannel 없는 것으로 처리 (skip)
+for ch1 in list(ch1_keep.keys()):
+    ch2_set = ch1_keep[ch1]
+    if ch2_set == {'-'}:
+        del ch1_keep[ch1]
+
+# 날짜별 (ch1|ch2) -> {v,o,s}, 기타로 그룹화
+grouped = defaultdict(lambda: defaultdict(lambda: {'v': 0, 'o': 0, 's': 0}))
+for date, subs in visit_sub_raw.items():
+    for sub_key, vals in subs.items():
+        ch1, ch2 = sub_key.split('|', 1)
+        if ch1 not in ch1_keep:
+            continue
+        keep_ch2 = ch2 if ch2 in ch1_keep[ch1] else '기타'
+        final_key = f'{ch1}|{keep_ch2}'
+        grouped[date][final_key]['v'] += vals['v']
+        grouped[date][final_key]['o'] += vals['o']
+        grouped[date][final_key]['s'] += vals['s']
+
+# 키별 시계열 배열로 변환
+sub_series = defaultdict(list)
+for date in sorted(grouped.keys()):
+    lb = f'{date[5:7]}/{date[8:10]}'
+    for final_key, vals in grouped[date].items():
+        sub_series[final_key].append([lb, int(vals['v']), int(vals['o']), int(vals['s'])])
+
+vsd_parts = []
+for key in sorted(sub_series.keys()):
+    inner = json.dumps(sub_series[key], ensure_ascii=False, separators=(',', ':'))
+    vsd_parts.append(f'  {json.dumps(key, ensure_ascii=False)}:{inner}')
+visit_sub_daily_js = 'const VISIT_SUB_DAILY={\n' + ',\n'.join(vsd_parts) + '\n};'
+
 # ADV_MONTHS: 방문 데이터 월 목록
 adv_months = sorted(set(d[5:7] for d in visit_daily.keys()))
 adv_month_opts = [f'      <option value="{mm}">{int(mm)}월</option>' for mm in adv_months]
@@ -247,6 +303,7 @@ html = replace_block(html, 'const PROD_DAILY={\n', '\n};', prod_daily_js)
 html = replace_block(html, 'const PROD_LIST=[\n', '\n];', prod_list_js)
 html = replace_block(html, 'const VISIT_CH=[\n', '\n];', visit_ch_js)
 html = replace_block(html, 'const VISIT_DAILY=[\n', '\n];', visit_daily_js)
+html = replace_block(html, 'const VISIT_SUB_DAILY={\n', '\n};', visit_sub_daily_js)
 if adv_months:
     html = replace_block(html, '<!-- ADV_MONTH_OPTS -->', '<!-- /ADV_MONTH_OPTS -->', adv_month_opts_html)
     adv_start = min(visit_daily.keys())
