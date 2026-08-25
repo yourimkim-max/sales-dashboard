@@ -616,6 +616,12 @@
     </div>
   </div>
 </div><!-- /pane-advert -->
+
+<!-- 광고 탭 채널별 매출 툴팁 -->
+<div id="adv-tt" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;z-index:300;pointer-events:none;min-width:190px;box-shadow:0 4px 18px rgba(0,0,0,.13)">
+  <div class="adv-tt-date" style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-1)"></div>
+  <div class="adv-tt-rows"></div>
+</div>
 </div><!-- /main-content -->
 </div><!-- /app-body -->
 
@@ -2512,6 +2518,7 @@ const ADV_CHS  = ['네이버 서비스','네이버 광고','네이버 검색','�
 const ADV_COLS = ['#3B82F6','#F59E0B','#10B981','#8B5CF6','#9CA3AF'];
 // VISIT_DAILY 인덱스: row[1+ci*3]=visits, row[2+ci*3]=orders, row[3+ci*3]=sales
 let advData = VISIT_DAILY.slice();
+let advHoverIdx = -1;
 
 function setAdvFilterAll(){
   document.getElementById('adv-chip-all').classList.add('active');
@@ -2611,7 +2618,7 @@ function drawAdvTable(){
       <td class="num">${v.toLocaleString()}</td>
       <td class="num">${o.toLocaleString()}</td>
       <td class="num">${cvr}%</td>
-      <td class="num">${fmtS(s)}</td>
+      <td class="num">${s.toLocaleString()}</td>
       <td class="num">
         <div class="adv-bar-wrap">
           <div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${sPct.toFixed(1)}%;background:${ADV_COLS[ci]}"></div></div>
@@ -2628,7 +2635,7 @@ function drawAdvTable(){
         <td class="num">${sv.toLocaleString()}</td>
         <td class="num">${so.toLocaleString()}</td>
         <td class="num">${scvr}%</td>
-        <td class="num">${fmtS(ss)}</td>
+        <td class="num">${ss.toLocaleString()}</td>
         <td></td>
       </tr>`;
     }).join('');
@@ -2645,15 +2652,51 @@ function drawAdvDaily(){
   const W=canvas.offsetWidth||400, H=220;
   canvas.width=W*dpr; canvas.height=H*dpr;
   canvas.style.width=W+'px'; canvas.style.height=H+'px';
+
+  if(!canvas._advEvt){
+    canvas._advEvt=true;
+    const getIdx=mx=>{
+      const PAD_L=50, PAD_R=14;
+      const cW=canvas.offsetWidth-PAD_L-PAD_R;
+      const n=advData.length;
+      let best=-1,bd=Infinity;
+      for(let i=0;i<n;i++){
+        const d=Math.abs(mx-(PAD_L+i*cW/Math.max(n-1,1)));
+        if(d<bd){bd=d;best=i;}
+      }
+      return bd<40?best:-1;
+    };
+    canvas.addEventListener('mousemove',e=>{
+      const rect=canvas.getBoundingClientRect();
+      advHoverIdx=getIdx(e.clientX-rect.left);
+      renderAdvDailyChart(canvas);
+      advHoverIdx>=0?showAdvTT(e,advHoverIdx):hideAdvTT();
+    });
+    canvas.addEventListener('mouseleave',()=>{
+      advHoverIdx=-1; renderAdvDailyChart(canvas); hideAdvTT();
+    });
+  }
+  renderAdvDailyChart(canvas);
+
+  const leg=document.getElementById('advDailyLeg');
+  if(leg) leg.innerHTML=ADV_CHS.map((ch,ci)=>
+    `<span class="adv-leg-item"><span class="adv-leg-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</span>`
+  ).join('');
+}
+
+function renderAdvDailyChart(canvas){
+  if(!canvas||!advData.length) return;
+  const dpr=window.devicePixelRatio||1;
+  const W=canvas.width/dpr, H=canvas.height/dpr;
   const ctx=canvas.getContext('2d');
-  ctx.scale(dpr,dpr);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.save(); ctx.scale(dpr,dpr);
 
   const PAD={top:12,right:14,bottom:28,left:50};
   const cW=W-PAD.left-PAD.right, cH=H-PAD.top-PAD.bottom;
   const n=advData.length;
   let maxV=1;
   advData.forEach(row=>{ ADV_CHS.forEach((_,ci)=>{ maxV=Math.max(maxV,row[1+ci*3]||0); }); });
-
   const xf=i=>PAD.left+i*cW/Math.max(n-1,1);
   const yf=v=>PAD.top+cH*(1-v/maxV);
 
@@ -2666,6 +2709,14 @@ function drawAdvDaily(){
     ctx.fillText(v>=10000?Math.round(v/1000)+'k':v, PAD.left-4, yy+3);
   });
 
+  if(advHoverIdx>=0){
+    const cx=xf(advHoverIdx);
+    ctx.save(); ctx.strokeStyle=css('--text-3'); ctx.lineWidth=1;
+    ctx.globalAlpha=0.35; ctx.setLineDash([4,3]);
+    ctx.beginPath(); ctx.moveTo(cx,PAD.top); ctx.lineTo(cx,H-PAD.bottom); ctx.stroke();
+    ctx.restore();
+  }
+
   ADV_COLS.forEach((col,ci)=>{
     ctx.beginPath();
     ctx.strokeStyle=col; ctx.lineWidth=2; ctx.lineJoin='round';
@@ -2674,16 +2725,41 @@ function drawAdvDaily(){
       i===0?ctx.moveTo(xf(i),yf(v)):ctx.lineTo(xf(i),yf(v));
     });
     ctx.stroke();
+    if(advHoverIdx>=0){
+      const v=advData[advHoverIdx][1+ci*3]||0;
+      ctx.beginPath(); ctx.arc(xf(advHoverIdx),yf(v),4,0,Math.PI*2);
+      ctx.fillStyle=col; ctx.fill();
+      ctx.strokeStyle=css('--surface'); ctx.lineWidth=1.5; ctx.stroke();
+    }
   });
 
   ctx.fillStyle=css('--text-3'); ctx.font='9px system-ui'; ctx.textAlign='center';
   const step=Math.max(1,Math.round(n/8));
   advData.forEach((row,i)=>{ if(i%step===0||i===n-1) ctx.fillText(row[0],xf(i),H-4); });
+  ctx.restore();
+}
 
-  const leg=document.getElementById('advDailyLeg');
-  if(leg) leg.innerHTML=ADV_CHS.map((ch,ci)=>
-    `<span class="adv-leg-item"><span class="adv-leg-dot" style="background:${ADV_COLS[ci]}"></span>${ch}</span>`
-  ).join('');
+function showAdvTT(e,idx){
+  const tt=document.getElementById('adv-tt');
+  if(!tt) return;
+  const row=advData[idx];
+  tt.querySelector('.adv-tt-date').textContent=row[0];
+  tt.querySelector('.adv-tt-rows').innerHTML=ADV_CHS.map((ch,ci)=>{
+    const s=row[3+ci*3]||0;
+    return `<div style="display:flex;align-items:center;gap:7px;margin:3px 0">
+      <span style="width:8px;height:8px;border-radius:50%;background:${ADV_COLS[ci]};flex-shrink:0"></span>
+      <span style="flex:1;color:var(--text-2);font-size:11px">${ch}</span>
+      <span style="font-weight:600;font-variant-numeric:tabular-nums;font-size:12px">${s.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+  tt.style.display='block';
+  const x=e.clientX+14, y=e.clientY-10;
+  tt.style.left=(x+tt.offsetWidth>innerWidth?e.clientX-tt.offsetWidth-10:x)+'px';
+  tt.style.top=Math.max(0,Math.min(y,innerHeight-tt.offsetHeight-4))+'px';
+}
+function hideAdvTT(){
+  const tt=document.getElementById('adv-tt');
+  if(tt) tt.style.display='none';
 }
 
 updateAnalysis();
