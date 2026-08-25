@@ -601,18 +601,18 @@
       padding:11px 16px;background:var(--surface);border:1px solid var(--border);border-radius:10px"></div>
     <!-- KPI -->
     <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
-      <div class="kpi"><div class="kpi-label">총 방문수</div>
-        <div class="kpi-value c-vis" id="adv-kv">–</div>
-        <div class="kpi-sub" id="adv-kv2"></div></div>
-      <div class="kpi"><div class="kpi-label">총 결제건수</div>
-        <div class="kpi-value" id="adv-ko">–</div>
-        <div class="kpi-sub" id="adv-ko2"></div></div>
-      <div class="kpi"><div class="kpi-label">구매 전환율</div>
-        <div class="kpi-value c-good" id="adv-kc">–</div>
-        <div class="kpi-sub">결제/방문</div></div>
       <div class="kpi"><div class="kpi-label">총 매출기여</div>
         <div class="kpi-value c-acc" id="adv-ks">–</div>
         <div class="kpi-sub" id="adv-ks2"></div></div>
+      <div class="kpi"><div class="kpi-label">총 결제건수</div>
+        <div class="kpi-value" id="adv-ko">–</div>
+        <div class="kpi-sub" id="adv-ko2"></div></div>
+      <div class="kpi"><div class="kpi-label">총 방문수</div>
+        <div class="kpi-value c-vis" id="adv-kv">–</div>
+        <div class="kpi-sub" id="adv-kv2"></div></div>
+      <div class="kpi"><div class="kpi-label">구매 전환율</div>
+        <div class="kpi-value c-good" id="adv-kc">–</div>
+        <div class="kpi-sub">결제/방문</div></div>
     </div>
     <!-- 채널별 방문 현황 -->
     <div class="chart-card">
@@ -2648,17 +2648,22 @@ function drawAdvert(){
   });
   const cvr=totV?(totO/totV*100).toFixed(1):'0.0';
   const n=advData.length;
-  document.getElementById('adv-kv').textContent=totV.toLocaleString();
-  document.getElementById('adv-kv2').textContent='일 평균 '+Math.round(totV/Math.max(n,1)).toLocaleString()+'명';
-  document.getElementById('adv-ko').textContent=totO.toLocaleString()+'건';
-  document.getElementById('adv-ko2').textContent='일 평균 '+Math.round(totO/Math.max(n,1)).toLocaleString()+'건';
-  document.getElementById('adv-kc').textContent=cvr+'%';
-  document.getElementById('adv-ks').textContent=fmtS(totS);
-  document.getElementById('adv-ks2').textContent=totS.toLocaleString()+'원';
   // 기간 요약 (매출 데이터 ALL 기준)
   const labels=new Set(advData.map(r=>r[0]));
-  let salS=0,salO=0,salR=0;
-  ALL.forEach(row=>{ if(labels.has(row[0])){ salS+=row[1]||0; salO+=row[2]||0; salR+=row[3]||0; } });
+  let salS=0,salO=0,salR=0,salV=0;
+  ALL.forEach(row=>{ if(labels.has(row[0])){ salS+=row[1]||0; salO+=row[2]||0; salR+=row[3]||0; salV+=row[4]||0; } });
+  // 비중 계산
+  const pctS=salS?(totS/salS*100).toFixed(1):'–';
+  const pctO=salO?(totO/salO*100).toFixed(1):'–';
+  const pctV=salV?(totV/salV*100).toFixed(1):'–';
+  // KPI 업데이트
+  document.getElementById('adv-ks').textContent=fmtS(totS);
+  document.getElementById('adv-ks2').innerHTML=`순매출 대비 <strong>${pctS}%</strong>`;
+  document.getElementById('adv-ko').textContent=totO.toLocaleString()+'건';
+  document.getElementById('adv-ko2').innerHTML=`실제 주문 대비 <strong>${pctO}%</strong>`;
+  document.getElementById('adv-kv').textContent=totV.toLocaleString();
+  document.getElementById('adv-kv2').innerHTML=`실제 방문 대비 <strong>${pctV}%</strong>`;
+  document.getElementById('adv-kc').textContent=cvr+'%';
   const lbl=n?advData[0][0]+(n>1?' – '+advData[n-1][0]:''):'';
   const refPct=salO?(salR/salO*100).toFixed(1):'0.0';
   document.getElementById('advSummary').innerHTML=
