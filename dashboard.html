@@ -657,6 +657,7 @@
   <div class="adv-tt-date" style="font-size:12px;font-weight:700;margin-bottom:6px;color:var(--text-1)"></div>
   <div class="adv-tt-rows"></div>
 </div>
+<div id="adv-donut-tt" style="display:none;position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 13px;z-index:300;pointer-events:none;box-shadow:0 4px 18px rgba(0,0,0,.13)"></div>
 </div><!-- /main-content -->
 </div><!-- /app-body -->
 
@@ -2611,8 +2612,10 @@ function drawAdvDonut(){
   }
   const cx=W/2,cy=H/2,outerR=Math.min(cx,cy)-6,innerR=outerR*0.56,GAP=0.014;
   let ang=-Math.PI/2;
+  const segAngles=[];
   segs.forEach(seg=>{
     const sw=(seg.value/total)*(Math.PI*2)-GAP;
+    segAngles.push({start:ang,end:ang+sw,seg});
     if(sw>0){
       ctx.beginPath();
       ctx.arc(cx,cy,outerR,ang,ang+sw);
@@ -2625,7 +2628,7 @@ function drawAdvDonut(){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillStyle=css('--text-1');
   ctx.font=`bold ${Math.round(outerR*.26)}px system-ui`;
-  ctx.fillText(fmtS(total),cx,cy-10);
+  ctx.fillText(total.toLocaleString(),cx,cy-10);
   ctx.font=`${Math.round(outerR*.16)}px system-ui`;
   ctx.fillStyle=css('--text-3');
   ctx.fillText('매출기여',cx,cy+12);
@@ -2634,6 +2637,46 @@ function drawAdvDonut(){
     const pct=(seg.value/total*100).toFixed(1);
     return `<div class="dl-row"><span class="dl-dot" style="background:${seg.color}"></span><span class="dl-label">${seg.label}</span><span class="dl-pct">${pct}%</span><span class="dl-val">${seg.value.toLocaleString()}</span></div>`;
   }).join('');
+
+  // 도넛 호버: 각 세그먼트 각도 저장 후 이벤트 연결
+  canvas._advDonutSegs=segAngles;
+  canvas._advDonutMeta={cx,cy,outerR,innerR,total};
+  if(!canvas._advDonutEvt){
+    canvas._advDonutEvt=true;
+    const tt=document.getElementById('adv-donut-tt');
+    canvas.addEventListener('mousemove',e=>{
+      const rect=canvas.getBoundingClientRect();
+      const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+      const {cx,cy,outerR,innerR,total}=canvas._advDonutMeta;
+      const dx=mx-cx, dy=my-cy;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<innerR||dist>outerR){ tt.style.display='none'; return; }
+      let a=Math.atan2(dy,dx);
+      const startRef=canvas._advDonutSegs[0].start;
+      if(a<startRef) a+=Math.PI*2;
+      const hit=canvas._advDonutSegs.find(s=>a>=s.start&&a<=s.end);
+      if(!hit){ tt.style.display='none'; return; }
+      const pct=(hit.seg.value/total*100).toFixed(1);
+      tt.innerHTML=`<div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+        <span style="width:9px;height:9px;border-radius:50%;background:${hit.seg.color};flex-shrink:0"></span>
+        <span style="font-weight:700;font-size:13px;color:var(--text-1)">${hit.seg.label}</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:20px;font-size:12px">
+        <span style="color:var(--text-3)">비중</span><span style="font-weight:600">${pct}%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;gap:20px;font-size:12px">
+        <span style="color:var(--text-3)">매출기여</span><span style="font-weight:600">${hit.seg.value.toLocaleString()}</span>
+      </div>`;
+      tt.style.display='block';
+      const tw=tt.offsetWidth, th=tt.offsetHeight;
+      let lx=e.clientX+14, ly=e.clientY-th/2;
+      if(lx+tw>window.innerWidth-8) lx=e.clientX-tw-14;
+      if(ly<4) ly=4;
+      if(ly+th>window.innerHeight-4) ly=window.innerHeight-th-4;
+      tt.style.left=lx+'px'; tt.style.top=ly+'px';
+    });
+    canvas.addEventListener('mouseleave',()=>{ tt.style.display='none'; });
+  }
 }
 
 function drawAdvert(){
@@ -2657,7 +2700,7 @@ function drawAdvert(){
   const pctO=salO?(totO/salO*100).toFixed(1):'–';
   const pctV=salV?(totV/salV*100).toFixed(1):'–';
   // KPI 업데이트
-  document.getElementById('adv-ks').textContent=fmtS(totS);
+  document.getElementById('adv-ks').textContent=totS.toLocaleString();
   document.getElementById('adv-ks2').innerHTML=`순매출 대비 <strong>${pctS}%</strong>`;
   document.getElementById('adv-ko').textContent=totO.toLocaleString()+'건';
   document.getElementById('adv-ko2').innerHTML=`실제 주문 대비 <strong>${pctO}%</strong>`;
