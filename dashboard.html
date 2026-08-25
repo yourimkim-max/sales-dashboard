@@ -2638,8 +2638,8 @@ function drawAdvTable(){
         <td class="num">${sv.toLocaleString()}</td>
         <td class="num">${so.toLocaleString()}</td>
         <td class="num">${scvr}%</td>
-        <td class="num">${ss.toLocaleString()}<span style="color:var(--text-3);font-size:11px;margin-left:5px">${subPct}%</span></td>
-        <td></td>
+        <td class="num">${ss.toLocaleString()}</td>
+        <td class="num"><div class="adv-bar-wrap"><div class="adv-bar-bg"><div class="adv-bar-fill" style="width:${subPct}%;background:${ADV_COLS[ci]}"></div></div><span class="adv-bar-pct">${subPct}%</span></div></td>
       </tr>`;
     }).join('');
 
